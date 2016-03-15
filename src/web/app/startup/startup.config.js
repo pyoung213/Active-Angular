@@ -1,23 +1,11 @@
 angular
     .module('app.startup')
-    .config(function($locationProvider, $urlRouterProvider, $translateProvider, AuthEventsProvider) {
-
-        AuthEventsProvider.init();
+    .config(function($locationProvider, ActiveAngularProvider, EnvironmentConfig) {
 
         $locationProvider.html5Mode(true);
 
-        // For any unmatched url, send to 404
-        $urlRouterProvider.otherwise('/404');
-
-        $translateProvider.useStaticFilesLoader({
-            prefix: 'languages/',
-            suffix: '.json'
-        });
-
-        $translateProvider.preferredLanguage('en_US');
-        $translateProvider.useSanitizeValueStrategy('escape');
+        ActiveAngularProvider.setBaseUrl(EnvironmentConfig.api)
     })
-    .run(function($rootScope, AuthEvents, routes) {
-        AuthEvents.hookEvents();
+    .run(function($rootScope, routes) {
         $rootScope.routes = routes;
     });

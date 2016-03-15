@@ -1,12 +1,7 @@
 {
     "development": {
         "EnvironmentConfig": {
-            "api": "http://localhost/"
-        }
-    },
-    "production": {
-        "EnvironmentConfig": {
-            "api": "https://api.production.com/"
+            "api": "http://56e7365203006f1100b5c54d.mockapi.io/"
         }
     }
 }

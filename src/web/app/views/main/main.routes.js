@@ -5,7 +5,6 @@ angular
             .state(routes.MAIN, {
                 abstract: true,
                 templateUrl: 'main.html',
-                controller: 'MainController as vm',
-                unauthenticated: false
+                controller: 'MainController as vm'
             });
     });
