@@ -24,7 +24,11 @@ module.exports = function(config) {
         // test results reporter to use
         // possible values: 'dots', 'progress', 'coverage'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-        reporters: ['spec', 'coverage'],
+        reporters: ['spec', 'coverage', 'osx'],
+
+        osxReporter: {
+            notificationMode: 'always'
+        },
 
         coverageReporter: {
             dir: gulpConfig.karma.coverage.dir,

@@ -195,12 +195,10 @@ function getKarmaOptions() {
     var options = {
         files: [].concat(
             bowerFiles,
-            config.specHelpers,
             path.join(clientApp, '**/*.module.js'),
             path.join(clientApp, '**/*.js'),
             path.join(temp, config.templateCache.html.file),
-            path.join(temp, config.templateCache.svg.file),
-            config.serverIntegrationSpecs
+            path.join(temp, config.templateCache.svg.file)
         ),
         exclude: [],
         coverage: {

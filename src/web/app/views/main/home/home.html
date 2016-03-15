@@ -1,6 +1,7 @@
 <div class="home-container">
     <h2>Content!</h2>
-    <md-button class="md-icon-button">
-        <md-icon md-svg-icon="close.svg" aria-label="Close dialog"></md-icon>
-    </md-button>
-</div>
+    <div ng-repeat="post in vm.posts">
+        {{post}}
+    </div>
+    <h4>{{vm.posts.timestamp}}</h4>
+</div> 

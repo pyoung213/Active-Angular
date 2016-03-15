@@ -10,10 +10,10 @@
             baseUrl = base;
         }
 
-        this.$get = function($http, $q, $log, activeAngularCache, ActiveArray, ActiveObject) {
+        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject) {
             function ActiveAngular(url) {
                 var defer = $q.defer();
-                this.url = baseUrl + '/' + url;
+                this.url = url;
 
                 this.$cached = new activeAngularCache();
                 this.$promise = defer.promise;
@@ -72,9 +72,11 @@
                         };
                     }
                     if (self.$cached.cachedTime) {
-                        self.$cached[key].timestamp = self.$cached.getTimestamp();
+                        Object.defineProperty(self.$cached[key], 'timestamp', {
+                            enumerable: false,
+                            value: self.$cached.getTimestamp()
+                        });
                     }
-
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
@@ -160,12 +162,14 @@
                     }
                     if (options.method === 'GET' && Object.keys(options.data).length) {
                         options.url += options.url.indexOf('?') == -1 ? '?' : '&';
-                        options.url += $.param(options.data);
+                        options.url += $httpParamSerializerJQLike(options.data);
                     }
 
                     options.transformResponse = appendTransform($http.defaults.transformResponse, function(value) {
                         return self.$transformResponse(value);
                     })
+
+                    options.url = baseUrl + '/' + options.url;
 
                     return $http(options)
                         .then(function(response) {

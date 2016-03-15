@@ -1,7 +1,7 @@
 {
     "development": {
         "EnvironmentConfig": {
-            "api": "http://56e7365203006f1100b5c54d.mockapi.io/"
+            "api": "http://56e7365203006f1100b5c54d.mockapi.io"
         }
     }
 }

@@ -4,7 +4,11 @@
         .factory('ActiveArray', function(ActiveObject) {
             function ActiveArray(data, instance) {
                 var self = this;
-                self.instance = instance;
+
+                Object.defineProperty(self, 'instance', {
+                    enumerable: false,
+                    value: instance
+                });
 
                 if (Object.keys(data).length === 0) {
                     return;

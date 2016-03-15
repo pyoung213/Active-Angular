@@ -61,7 +61,7 @@ describe('ActiveAngular', function() {
                 sort: 'something',
                 param: 'another'
             }
-            $httpBackend.expectGET('/posts' + '?sort=something&param=another').respond(200, posts);
+            $httpBackend.expectGET('/posts' + '?param=another&sort=something').respond(200, posts);
             Post.$query(getMockData);
             $httpBackend.flush();
         });
@@ -101,7 +101,7 @@ describe('ActiveAngular', function() {
                 sort: 'something',
                 param: 'another'
             }
-            $httpBackend.expectGET('/posts/' + userId + '?sort=something&param=another').respond(200, post);
+            $httpBackend.expectGET('/posts/' + userId + '?param=another&sort=something').respond(200, post);
             Post.$get(getMockData);
             $httpBackend.flush();
         });
