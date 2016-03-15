@@ -4,5 +4,6 @@ angular
         'pascalprecht.translate',
         'ngMaterial',
         'ngMessages',
-        'restangular'
+        'restangular',
+        'activeAngular'
     ]);
