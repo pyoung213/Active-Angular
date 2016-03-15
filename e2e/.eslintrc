@@ -1,0 +1,7 @@
+{
+    "env": {
+        "protractor": true,
+        "node": true,
+        "mocha": true
+    }
+}
