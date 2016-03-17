@@ -1,13 +1,14 @@
 (function() {
     angular
         .module('activeAngular')
-        .factory('activeAngularCache', function($timeout) {
-            var defaultCacheTime = 5000;
+        .factory('activeAngularCache', function() {
+            var defaultCacheTime = 5000 //in milleseconds;
 
             var factory = {
                 get: get,
                 set: set,
                 setArray: setArray,
+                setTimestamp: setTimestamp,
                 remove: remove,
                 findAndRemove: findAndRemove,
                 isExpired: isExpired
@@ -26,8 +27,10 @@
 
             function set(instance, key, data) {
                 if (instance.$cache[key]) {
+                    instance.$cache[key].$timestamp = new Date().getTime();
                     return instance.$cache[key] = _.extend(instance.$cache[key], data);
                 }
+                factory.setTimestamp(data);
                 return instance.$cache[key] = data
             }
 
@@ -45,6 +48,7 @@
             }
 
             function findAndRemove(cache, key) {
+                //We need to clean out the empty object in the array.
                 _.forOwn(cache, function(item, itemkey) {
                     if (!item.$isArray) {
                         return;
@@ -58,8 +62,29 @@
                 });
             }
 
-            function isExpired() {
-                return false;
+            function isExpired(cache) {
+                if (!cache) {
+                    return false;
+                }
+                var timestamp = cache.$timestamp;
+                if (!timestamp) {
+                    return false;
+                }
+
+                var timeNow = new Date().getTime();
+                return timeNow - timestamp > defaultCacheTime;
+            }
+
+            function setTimestamp(cache) {
+                var date = new Date().getTime();
+                Object.defineProperty(cache, '$timestamp', {
+                    get: function() {
+                        return date;
+                    },
+                    set: function(newDate) {
+                        date = newDate;
+                    }
+                });
             }
         });
 })();
