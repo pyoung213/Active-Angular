@@ -25,8 +25,6 @@
                 this.$create = $create;
                 this.$find = $find;
                 this.$edges = undefined;
-                this.$hasMany = $hasMany;
-                this.$transformResponse = $transformResponse;
                 this.$$http = $$http;
                 this._get = _get;
                 this._stringToObject = _stringToObject;
@@ -77,7 +75,7 @@
                             referenceObject = _.extend(referenceObject, data);
                             // defer.resolve(referenceObject);
                         })
-                        .catch(function(error) {
+                        .catch(function(_error) {
 
                         })
                 }
@@ -102,10 +100,6 @@
                         return;
                     }
                     $log.error(response.config.url + ' Expected an Array and got an Object from server.');
-                }
-
-                function $transformResponse(data) {
-                    return data;
                 }
 
                 function $save(options) {
@@ -156,10 +150,6 @@
                     });
                 }
 
-                function $hasMany() {
-
-                }
-
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
@@ -191,14 +181,8 @@
 
                     options.url = baseUrl + '/' + options.url;
 
-                    // $http.defaults.transformResponse.push(appendTransform);
-
                     return $http(options);
                 }
-
-                // function appendTransform(response) {
-                //     return response
-                // }
 
                 function _stringToObject(options) {
                     if (angular.isString(options)) {

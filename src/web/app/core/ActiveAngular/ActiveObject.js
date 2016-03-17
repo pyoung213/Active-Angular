@@ -18,9 +18,8 @@
                     enumerable: false,
                     value: instance.$save
                 });
-
-
             }
+
             return ActiveObject;
         });
 })();

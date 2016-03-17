@@ -2,7 +2,7 @@
     angular
         .module('activeAngular')
         .factory('activeAngularCache', function() {
-            var defaultCacheTime = 5000 //in milleseconds;
+            var defaultCacheTime = 1000 * 60 * 5 // 5 minutes.
 
             var factory = {
                 get: get,
@@ -78,6 +78,7 @@
             function setTimestamp(cache) {
                 var date = new Date().getTime();
                 Object.defineProperty(cache, '$timestamp', {
+                    enumerable: false,
                     get: function() {
                         return date;
                     },

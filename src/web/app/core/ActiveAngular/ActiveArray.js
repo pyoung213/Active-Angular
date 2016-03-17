@@ -8,22 +8,32 @@
                     self[key] = value;
                 });
 
-                Object.defineProperty(self, 'instance', {
+                Object.defineProperty(self, '$remove', {
                     enumerable: false,
-                    value: instance
+                    value: function(options) {
+                        instance.$remove(options)
+                    }
+                });
+
+                Object.defineProperty(self, '$create', {
+                    enumerable: false,
+                    value: function(options) {
+                        instance.$create(options)
+                    }
+                });
+
+                Object.defineProperty(self, '$get', {
+                    enumerable: false,
+                    value: function(options, reference) {
+                        instance.$get(options, reference)
+                    }
+                });
+
+                Object.defineProperty(self, '$isArray', {
+                    enumerable: false,
+                    value: true
                 });
             }
-
-            ActiveArray.prototype.$remove = function(options) {
-                return this.instance.$remove(options);
-            };
-            ActiveArray.prototype.$create = function(options) {
-                return this.instance.$create(options);
-            };
-            ActiveArray.prototype.$get = function(options, reference) {
-                return this.instance.$get(options, reference);
-            };
-            ActiveArray.prototype.$isArray = true;
 
             return ActiveArray;
         });
