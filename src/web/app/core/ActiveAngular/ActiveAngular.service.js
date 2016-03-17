@@ -12,10 +12,11 @@
 
         this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject) {
             function ActiveAngular(url) {
+                var self = this;
                 var defer = $q.defer();
                 this.url = url;
 
-                this.$cached = new activeAngularCache();
+                this.$cache = {};
                 this.$promise = defer.promise;
                 this.$get = $get;
                 this.$query = $query;
@@ -41,59 +42,66 @@
 
                 function _get(options, reference, isArray) {
                     var self = this;
-
+                    //cleanup options
                     options = _stringToObject(options);
                     options = _undefinedToObject(options);
 
+                    //caching check
                     var key = reference ? options.id + reference : options.id;
-                    var cachedItem = self.$cached[key];
+                    var cachedItem = activeAngularCache.get(self, key);
+
                     if (cachedItem) {
-                        if (!self.$cached.isExpired(cachedItem)) {
-                            return cachedItem;
-                        }
+                        return cachedItem;
                     }
 
-                    var found = self.$find(key);
-                    if (found) {
-                        return found;
-                    }
+                    //reference creation.
+                    var referenceObject = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
+                    activeAngularCache.set(self, options.id, referenceObject);
+                    asyncGetRequest(options, referenceObject, isArray);
+                    return referenceObject;
+                }
 
-                    self.$cached[key] = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
-
-                    if (isArray) {
-                        ActiveArray.prototype.$remove = function(options) {
-                            return self.$remove(options);
-                        };
-                        ActiveArray.prototype.$create = function(options) {
-                            return self.$create(options);
-                        };
-                        ActiveArray.prototype.$get = function(options, reference) {
-                            return self.$get(options, reference);
-                        };
-                    }
-                    if (self.$cached.cachedTime) {
-                        Object.defineProperty(self.$cached[key], 'timestamp', {
-                            enumerable: false,
-                            value: self.$cached.getTimestamp()
-                        });
-                    }
+                function asyncGetRequest(options, referenceObject, isArray) {
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
-                            var isDataArray = !!data[0] && !!data[1];
+                            var isDataArray = angular.isArray(data);
                             if (isDataArray != isArray) {
-                                if (isDataArray) {
-                                    $log.error(response.config.url + ' Expected an Object and got an Array from server.');
-                                    return;
-                                }
-                                $log.error(response.config.url + ' Expected an Array and got an Object from server.');
+                                logMismatchError(response, isDataArray);
                                 return;
                             }
-                            data = _.extend(data, self.$edges);
-                            self.$cached[key] = _.extend(self.$cached[key], data);
-                            defer.resolve(self.$cached[key]);
+                            data = inheritActiveClass(data);
+                            if (isDataArray) {
+                                data = activeAngularCache.setArray(self, data)
+                            }
+                            referenceObject = _.extend(referenceObject, data);
+                            // defer.resolve(referenceObject);
+                        })
+                        .catch(function(error) {
+
+                        })
+                }
+
+                function inheritActiveClass(data) {
+                    if (angular.isArray(data)) {
+                        data = new ActiveArray(data, self);
+
+                        _.forEach(data, function(value, key) {
+                            data[key] = new ActiveObject(value, self);
                         });
-                    return self.$cached[key];
+
+                        return data;
+                    }
+
+                    return new ActiveObject(data, self);
+                }
+
+                function logMismatchError(response, isArray) {
+                    if (isArray) {
+                        $log.error(response.config.url + ' Expected an Object and got an Array from server.');
+                        return;
+                    }
+                    $log.error(response.config.url + ' Expected an Array and got an Object from server.');
                 }
 
                 function $transformResponse(data) {
@@ -101,16 +109,32 @@
                 }
 
                 function $save(options) {
-                    return this.$$http('PUT', options);
+                    var item = this;
+                    if (options && !options.id) {
+                        options.id = item.id;
+                    }
+                    return self.$$http('PUT', options)
+                        .then(function(response) {
+                            activeAngularCache.set(self, response.data.id, response.data);
+                        });
                 }
 
                 function $remove(options) {
-                    if (angular.isString(options)) {
-                        var id = options;
-                        options = {};
-                        options.id = id;
-                    }
-                    return this.$$http('DELETE', options);
+                    var item = this;
+
+                    options = _stringToObject(options);
+                    options = _undefinedToObject(options, item);
+
+                    return self.$$http('DELETE', options)
+                        .then(function(response) {
+                            activeAngularCache.remove(self, response.data.id);
+                            //remove object binding from view.
+                            if (!item.$array) {
+                                _.forOwn(item, function(_value, key) {
+                                    delete item[key]
+                                });
+                            }
+                        });
                 }
 
                 function $create(options) {
@@ -165,28 +189,16 @@
                         options.url += $httpParamSerializerJQLike(options.data);
                     }
 
-                    options.transformResponse = appendTransform($http.defaults.transformResponse, function(value) {
-                        return self.$transformResponse(value);
-                    })
-
                     options.url = baseUrl + '/' + options.url;
 
-                    return $http(options)
-                        .then(function(response) {
-                            if (response.status === 200) {
-                                return response;
-                            }
-                        });
+                    // $http.defaults.transformResponse.push(appendTransform);
+
+                    return $http(options);
                 }
 
-                function appendTransform(defaults, transform) {
-
-                    // We can't guarantee that the default transformation is an array
-                    defaults = angular.isArray(defaults) ? defaults : [defaults];
-
-                    // Append the new transformation to the defaults
-                    return defaults.concat(transform);
-                }
+                // function appendTransform(response) {
+                //     return response
+                // }
 
                 function _stringToObject(options) {
                     if (angular.isString(options)) {
@@ -197,10 +209,11 @@
                     return options;
                 }
 
-                function _undefinedToObject(options) {
+                function _undefinedToObject(options, item) {
                     if (angular.isUndefined(options)) {
                         options = {};
-                        options.id = 'undefined';
+                        var key = item ? item.id : 'undefined';
+                        options.id = key;
                     }
 
                     return options;

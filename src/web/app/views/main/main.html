@@ -8,8 +8,11 @@
           Close Sidenav Left
         </md-button>
         <p hide-md show-gt-md>
-          This sidenav is locked open on your device. To go back to the default behavior,
-          narrow your display.
+            <div ng-repeat="post in vm.posts">
+                {{post.message}}
+            </div>
+            <h3> Single Post </h3>
+        <span>{{vm.post.message}}</span>
         </p>
       </md-content>
     </md-sidenav>

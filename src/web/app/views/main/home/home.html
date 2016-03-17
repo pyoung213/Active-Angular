@@ -1,7 +1,22 @@
 <div class="home-container">
     <h2>Content!</h2>
-    <div ng-repeat="post in vm.posts">
+    <div ng-repeat="post in vm.posts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
         {{post}}
     </div>
-    <h4>{{vm.posts.timestamp}}</h4>
-</div> 
+    <h4>{{vm.posts.timestamp | date:'short'}}</h4>
+    <h3>Single Post</h3>
+    <div ng-click="vm.editPostMessage(vm.post)">
+        <span ng-bind="vm.post.message"></span>
+    </div>
+    <div layout="row">
+        <md-input-container class="md-block" flex="30">
+           <label>First name</label>
+           <input ng-model="vm.message">
+         </md-input-container>
+         <md-button class="md-primary" ng-click="vm.savePost()">Save</md-button>
+     </div>
+     <h3>Cache</h3>
+     <pre>
+         {{vm.postCache | json}}
+     </pre>
+</div>

@@ -5,6 +5,10 @@
             function ActiveObject(object, instance) {
                 var self = this;
 
+                _.forOwn(object, function(value, key) {
+                    self[key] = value;
+                });
+
                 Object.defineProperty(self, '$remove', {
                     enumerable: false,
                     value: instance.$remove
@@ -15,9 +19,7 @@
                     value: instance.$save
                 });
 
-                _.forOwn(object, function(value, key) {
-                    self[key] = value;
-                });
+
             }
             return ActiveObject;
         });
