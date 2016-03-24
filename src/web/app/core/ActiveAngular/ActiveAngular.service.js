@@ -48,15 +48,17 @@
                     var key = reference ? options.id + reference : options.id;
                     var cachedItem = activeAngularCache.get(self, key);
 
-                    if (cachedItem) {
+                    if (cachedItem && !cachedItem.$isExpired) {
                         return cachedItem;
+                    }
+                    if (!cachedItem) {
+                        cachedItem = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
                     }
 
                     //reference creation.
-                    var referenceObject = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
-                    activeAngularCache.set(self, options.id, referenceObject);
-                    asyncGetRequest(options, referenceObject, isArray);
-                    return referenceObject;
+                    activeAngularCache.set(self, key, cachedItem);
+                    asyncGetRequest(options, cachedItem, isArray);
+                    return cachedItem;
                 }
 
                 function asyncGetRequest(options, referenceObject, isArray) {
@@ -104,12 +106,25 @@
 
                 function $save(options) {
                     var item = this;
+
+                    if (!options) {
+                        return;
+                    }
+
                     if (options && !options.id) {
                         options.id = item.id;
                     }
+
+                    var oldCopy = angular.copy(item);
+                    var savedChanges = _.extend(item, options);
+                    activeAngularCache.set(self, savedChanges.id, savedChanges);
+
                     return self.$$http('PUT', options)
                         .then(function(response) {
                             activeAngularCache.set(self, response.data.id, response.data);
+                        })
+                        .catch(function() {
+                            activeAngularCache.set(self, oldCopy.id, oldCopy);
                         });
                 }
 

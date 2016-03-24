@@ -1,39 +1,39 @@
 describe('ActiveAngular', function() {
-    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, ActiveObject, $q, post,
+    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, activeAngularCache, ActiveObject, $q, post, activePosts,
         userId = "1234567890",
         url = "posts/:id";
 
     beforeEach(module('activeAngular'));
 
-    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_) {
+    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_, _activeAngularCache_) {
         sandbox = sinon.sandbox.create();
         ActiveAngular = _ActiveAngular_;
         ActiveArray = _ActiveArray_;
         ActiveObject = _ActiveObject_;
         Post = new ActiveAngular(url);
-        Post.$cached.cachedTime = false;
         $httpBackend = _$httpBackend_;
+        activeAngularCache = _activeAngularCache_;
         $q = _$q_;
 
-        posts = {
-            0: {
-                id: '1',
-                message: "test"
-            },
-            1: {
-                id: '2',
-                message: "test"
-            },
-            2: {
-                id: '3',
-                message: "test"
-            },
-            3: {
-                id: '4',
-                message: "test"
-            }
-        }
-        posts = new ActiveArray(posts, Post);
+        posts = [{
+            id: '1',
+            message: "test"
+        }, {
+            id: '2',
+            message: "test"
+        }, {
+            id: '3',
+            message: "test"
+        }, {
+            id: '4',
+            message: "test"
+        }];
+
+        activePosts = new ActiveArray(posts, Post);
+        _.forEach(activePosts, function(value, key) {
+            activePosts[key] = new ActiveObject(value, self);
+        });
+
         post = posts[1];
     }));
 
@@ -83,9 +83,8 @@ describe('ActiveAngular', function() {
             $httpBackend.flush();
 
             $httpBackend.expectGET('/posts/' + postId).respond(200, posts[postId]);
-            var onePost = allPosts.$get(postId);
+            allPosts.$get(postId);
             $httpBackend.flush();
-            expect(onePost).to.have.all.keys(posts[postId]);
         });
     });
 
@@ -122,7 +121,7 @@ describe('ActiveAngular', function() {
             Comments.$query();
             $httpBackend.flush();
         });
-    })
+    });
 
     describe('$create', function() {
         it('should create with data on body', function() {
@@ -142,7 +141,7 @@ describe('ActiveAngular', function() {
                 message: 'hi',
                 title: 'awesome'
             }
-            $httpBackend.expectPUT('/posts/' + userId, angular.copy(saveMockData)).respond(200);
+            $httpBackend.expectPUT('/posts/' + userId, angular.copy(saveMockData)).respond(200, {});
             saveMockData.id = userId;
             Post.$save(saveMockData);
             $httpBackend.flush();
@@ -151,7 +150,7 @@ describe('ActiveAngular', function() {
 
     describe('$remove', function() {
         it('should remove item', function() {
-            $httpBackend.expectDELETE('/posts/' + userId).respond(200);
+            $httpBackend.expectDELETE('/posts/' + userId).respond(200, {});
             Post.$remove(userId);
             $httpBackend.flush();
         });
@@ -164,7 +163,7 @@ describe('ActiveAngular', function() {
             Post.$get(userId);
             $httpBackend.flush();
 
-            expect(Post.$cached[userId]).to.be.eql(post);
+            expect(Post.$cache[userId]).to.be.eql(post);
         });
 
         it('should $get posts with id and return cached ref', function() {
@@ -175,16 +174,6 @@ describe('ActiveAngular', function() {
             sandbox.stub(Post, '$$http');
             Post.$get(userId);
             expect(Post.$$http.called).to.be.false;
-        });
-
-        it('should $get all posts', function() {
-            $httpBackend.expectGET('/posts').respond(200, posts);
-            Post.$query();
-            $httpBackend.flush();
-            // console.log('cache', Post.$cached['undefined']);
-            // console.log('posts', posts);
-            // console.log('hit');
-            // expect(Post.$cached['undefined']).to.equal(posts);
         });
 
         it('should $get from cached array of posts', function() {
@@ -202,17 +191,9 @@ describe('ActiveAngular', function() {
             $httpBackend.expectGET('/posts/' + userId).respond(200, post);
             Post.$get(userId, reference);
             $httpBackend.flush();
-            expect(Post.$cached[userId + reference]).to.have.all.keys(post);
+            expect(Post.$cache[userId + reference]).to.have.all.keys(post);
         });
 
-        it('should not inherit any other instances cache time', function() {
-            var Ref = new ActiveAngular('test/:id');
-            Ref.$cached.cachedTime = 1000;
-            Post.$cached.cachedTime = 3000;
-
-            expect(Ref.$cached.cachedTime).to.be.equal(1000);
-            expect(Post.$cached.cachedTime).to.be.equal(3000);
-        });
 
         it('should $get when cache timestamp has expired', function() {
             var Ref = new ActiveAngular('something/:id');
@@ -225,18 +206,9 @@ describe('ActiveAngular', function() {
             Ref.$get(id);
             expect(Ref.$$http.called).to.be.false;
 
-            Ref.$cached.cachedTime = -1;
+            activeAngularCache.cacheTime(Ref, -1);
             Ref.$get(id);
             expect(Ref.$$http.called).to.be.true;
-        });
-    });
-
-    describe('$hasMany', function() {
-        it('should not inherit any other instances cache time', function() {
-            var CommentsModel = {};
-            Post.$hasMany('comments', {
-                model: CommentsModel
-            });
         });
     });
 

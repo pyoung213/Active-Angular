@@ -9,17 +9,19 @@
                 set: set,
                 setArray: setArray,
                 setTimestamp: setTimestamp,
+                setIsExpired: setIsExpired,
                 remove: remove,
                 findAndRemove: findAndRemove,
-                isExpired: isExpired
+                isExpired: isExpired,
+                cacheTime: cacheTime
             }
 
             return factory;
 
             function get(instance, key) {
                 var cachedItem = instance.$cache[key];
-                if (factory.isExpired(cachedItem)) {
-                    return;
+                if (factory.isExpired(instance, cachedItem)) {
+                    cachedItem.$isExpired = true;
                 }
 
                 return cachedItem;
@@ -27,10 +29,12 @@
 
             function set(instance, key, data) {
                 if (instance.$cache[key]) {
-                    instance.$cache[key].$timestamp = new Date().getTime();
+                    instance.$cache[key].$isExpired = false;
+                    instance.$cache[key] = factory.setTimestamp(instance.$cache[key]);
                     return instance.$cache[key] = _.extend(instance.$cache[key], data);
                 }
                 factory.setTimestamp(data);
+                factory.setIsExpired(data);
                 return instance.$cache[key] = data
             }
 
@@ -62,7 +66,7 @@
                 });
             }
 
-            function isExpired(cache) {
+            function isExpired(instance, cache) {
                 if (!cache) {
                     return false;
                 }
@@ -72,20 +76,63 @@
                 }
 
                 var timeNow = new Date().getTime();
-                return timeNow - timestamp > defaultCacheTime;
+                var defaultTime = angular.isDefined(instance.$cacheTime) ? instance.$cacheTime : defaultCacheTime;
+                return timeNow - timestamp > defaultTime;
             }
 
             function setTimestamp(cache) {
                 var date = new Date().getTime();
-                Object.defineProperty(cache, '$timestamp', {
+
+                if (!angular.isDefined(cache.$timestamp)) {
+                    Object.defineProperty(cache, '$timestamp', {
+                        enumerable: false,
+                        get: function() {
+                            return date;
+                        },
+                        set: function(newDate) {
+                            date = newDate;
+                        }
+                    });
+                }
+
+                cache.$timestamp = date;
+
+                return cache;
+            }
+
+            function setIsExpired(cache) {
+                var isExpired = false;
+
+                if (angular.isDefined(cache.$isExpired)) {
+                    return;
+                }
+
+                Object.defineProperty(cache, '$isExpired', {
                     enumerable: false,
                     get: function() {
-                        return date;
+                        return isExpired
                     },
-                    set: function(newDate) {
-                        date = newDate;
+                    set: function(value) {
+                        isExpired = value;
                     }
                 });
+            }
+
+            function cacheTime(instance, cacheTime) {
+                var defaultTime = defaultCacheTime;
+                if (!angular.isDefined(instance.$cacheTime)) {
+                    Object.defineProperty(instance, '$cacheTime', {
+                        enumerable: false,
+                        get: function() {
+                            return defaultTime
+                        },
+                        set: function(value) {
+                            defaultTime = value;
+                        }
+                    });
+                }
+                instance.$cacheTime = cacheTime;
+                return instance;
             }
         });
 })();

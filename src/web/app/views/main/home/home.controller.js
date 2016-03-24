@@ -2,7 +2,7 @@ angular
     .module('app.web')
     .controller('HomeController', HomeController);
 
-function HomeController(posts) {
+function HomeController(posts, $timeout) {
     var vm = this;
     vm.posts = posts.$query();
 
@@ -19,7 +19,7 @@ function HomeController(posts) {
             })
             .then(function() {
                 vm.message = '';
-            })
+            });
     }
 
     vm.post = posts.$get('3');
