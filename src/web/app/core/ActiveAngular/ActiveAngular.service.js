@@ -16,14 +16,13 @@
                 var defer = $q.defer();
                 this.url = url;
 
-                this.$cache = {};
+                this.$cache = activeAngularCache.create();
                 this.$promise = defer.promise;
                 this.$get = $get;
                 this.$query = $query;
                 this.$save = $save;
                 this.$remove = $remove;
                 this.$create = $create;
-                this.$find = $find;
                 this.$edges = undefined;
                 this.$$http = $$http;
                 this._get = _get;
@@ -46,7 +45,7 @@
 
                     //caching check
                     var key = reference ? options.id + reference : options.id;
-                    var cachedItem = activeAngularCache.get(self, key);
+                    var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
                         return cachedItem;
@@ -56,7 +55,7 @@
                     }
 
                     //reference creation.
-                    activeAngularCache.set(self, key, cachedItem);
+                    self.$cache.set(key, cachedItem);
                     asyncGetRequest(options, cachedItem, isArray);
                     return cachedItem;
                 }
@@ -72,7 +71,7 @@
                             }
                             data = inheritActiveClass(data);
                             if (isDataArray) {
-                                data = activeAngularCache.setArray(self, data)
+                                data = self.$cache.setArray(data)
                             }
                             referenceObject = _.extend(referenceObject, data);
                             // defer.resolve(referenceObject);
@@ -117,14 +116,14 @@
 
                     var oldCopy = angular.copy(item);
                     var savedChanges = _.extend(item, options);
-                    activeAngularCache.set(self, savedChanges.id, savedChanges);
+                    self.$cache.set(savedChanges.id, savedChanges);
 
                     return self.$$http('PUT', options)
                         .then(function(response) {
-                            activeAngularCache.set(self, response.data.id, response.data);
+                            self.$cache.set(response.data.id, response.data);
                         })
                         .catch(function() {
-                            activeAngularCache.set(self, oldCopy.id, oldCopy);
+                            self.$cache.set(oldCopy.id, oldCopy);
                         });
                 }
 
@@ -136,7 +135,7 @@
 
                     return self.$$http('DELETE', options)
                         .then(function(response) {
-                            activeAngularCache.remove(self, response.data.id);
+                            self.$cache.remove(response.data.id);
                             //remove object binding from view.
                             if (!item.$array) {
                                 _.forOwn(item, function(_value, key) {
@@ -148,21 +147,6 @@
 
                 function $create(options) {
                     return this.$$http('POST', options);
-                }
-
-                //Used for looking for references inside cached arrays.
-                function $find(id) {
-                    var self = this;
-
-                    return _.find(self.$cached, function(instance) {
-                        if (instance[0]) {
-                            return _.find(instance, function(sub) {
-                                if (sub.id === id) {
-                                    return sub;
-                                }
-                            })
-                        }
-                    });
                 }
 
                 function $$http(method, options) {

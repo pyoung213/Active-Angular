@@ -163,7 +163,7 @@ describe('ActiveAngular', function() {
             Post.$get(userId);
             $httpBackend.flush();
 
-            expect(Post.$cache[userId]).to.be.eql(post);
+            expect(Post.$cache.cached[userId]).to.be.eql(post);
         });
 
         it('should $get posts with id and return cached ref', function() {
@@ -191,7 +191,7 @@ describe('ActiveAngular', function() {
             $httpBackend.expectGET('/posts/' + userId).respond(200, post);
             Post.$get(userId, reference);
             $httpBackend.flush();
-            expect(Post.$cache[userId + reference]).to.have.all.keys(post);
+            expect(Post.$cache.cached[userId + reference]).to.have.all.keys(post);
         });
 
 
@@ -206,7 +206,7 @@ describe('ActiveAngular', function() {
             Ref.$get(id);
             expect(Ref.$$http.called).to.be.false;
 
-            activeAngularCache.cacheTime(Ref, -1);
+            Ref.$cache.cachedTime = -1;
             Ref.$get(id);
             expect(Ref.$$http.called).to.be.true;
         });

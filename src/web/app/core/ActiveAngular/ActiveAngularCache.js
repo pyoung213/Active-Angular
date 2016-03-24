@@ -2,137 +2,130 @@
     angular
         .module('activeAngular')
         .factory('activeAngularCache', function() {
-            var defaultCacheTime = 1000 * 60 * 5 // 5 minutes.
 
-            var factory = {
-                get: get,
-                set: set,
-                setArray: setArray,
-                setTimestamp: setTimestamp,
-                setIsExpired: setIsExpired,
-                remove: remove,
-                findAndRemove: findAndRemove,
-                isExpired: isExpired,
-                cacheTime: cacheTime
+            var cache = {
+                create: create
             }
 
-            return factory;
+            return cache;
 
-            function get(instance, key) {
-                var cachedItem = instance.$cache[key];
-                if (factory.isExpired(instance, cachedItem)) {
-                    cachedItem.$isExpired = true;
+            function create() {
+                var cached = {};
+                var defaultCacheTime = 1000 * 60 * 5 // 5 minutes.
+
+                var factory = {
+                    get: get,
+                    set: set,
+                    setArray: setArray,
+                    setTimestamp: setTimestamp,
+                    setIsExpired: setIsExpired,
+                    remove: remove,
+                    findAndRemove: findAndRemove,
+                    isExpired: isExpired,
+                    cached: cached,
+                    cachedTime: defaultCacheTime
                 }
 
-                return cachedItem;
-            }
+                return factory;
 
-            function set(instance, key, data) {
-                if (instance.$cache[key]) {
-                    instance.$cache[key].$isExpired = false;
-                    instance.$cache[key] = factory.setTimestamp(instance.$cache[key]);
-                    return instance.$cache[key] = _.extend(instance.$cache[key], data);
-                }
-                factory.setTimestamp(data);
-                factory.setIsExpired(data);
-                return instance.$cache[key] = data
-            }
-
-            function setArray(instance, data) {
-                _.forOwn(data, function(item, key) {
-                    data[key] = factory.set(instance, item.id, item);
-                });
-                return data;
-            }
-
-            function remove(instance, key) {
-                var cache = instance.$cache;
-                delete cache[key];
-                factory.findAndRemove(cache, key);
-            }
-
-            function findAndRemove(cache, key) {
-                //We need to clean out the empty object in the array.
-                _.forOwn(cache, function(item, itemkey) {
-                    if (!item.$isArray) {
-                        return;
+                function get(key) {
+                    var cachedItem = cached[key];
+                    if (factory.isExpired(cachedItem)) {
+                        cachedItem.$isExpired = true;
                     }
-                    _.forOwn(item, function(activeObject, activeKey) {
-                        if (activeObject.id === key) {
-                            delete cache[itemkey][activeKey]
+
+                    return cachedItem;
+                }
+
+                function set(key, data) {
+                    if (cached[key]) {
+                        cached[key].$isExpired = false;
+                        cached[key] = factory.setTimestamp(cached[key]);
+                        return cached[key] = _.extend(cached[key], data);
+                    }
+                    factory.setTimestamp(data);
+                    factory.setIsExpired(data);
+                    return cached[key] = data
+                }
+
+                function setArray(data) {
+                    _.forOwn(data, function(item, key) {
+                        data[key] = factory.set(item.id, item);
+                    });
+                    return data;
+                }
+
+                function remove(key) {
+                    var cache = cached;
+                    delete cache[key];
+                    factory.findAndRemove(cache, key);
+                }
+
+                function findAndRemove(cache, key) {
+                    //We need to clean out the empty object in the array.
+                    _.forOwn(cache, function(item, itemkey) {
+                        if (!item.$isArray) {
                             return;
                         }
-                    });
-                });
-            }
-
-            function isExpired(instance, cache) {
-                if (!cache) {
-                    return false;
-                }
-                var timestamp = cache.$timestamp;
-                if (!timestamp) {
-                    return false;
-                }
-
-                var timeNow = new Date().getTime();
-                var defaultTime = angular.isDefined(instance.$cacheTime) ? instance.$cacheTime : defaultCacheTime;
-                return timeNow - timestamp > defaultTime;
-            }
-
-            function setTimestamp(cache) {
-                var date = new Date().getTime();
-
-                if (!angular.isDefined(cache.$timestamp)) {
-                    Object.defineProperty(cache, '$timestamp', {
-                        enumerable: false,
-                        get: function() {
-                            return date;
-                        },
-                        set: function(newDate) {
-                            date = newDate;
-                        }
+                        _.forOwn(item, function(activeObject, activeKey) {
+                            if (activeObject.id === key) {
+                                delete cache[itemkey][activeKey]
+                                return;
+                            }
+                        });
                     });
                 }
 
-                cache.$timestamp = date;
-
-                return cache;
-            }
-
-            function setIsExpired(cache) {
-                var isExpired = false;
-
-                if (angular.isDefined(cache.$isExpired)) {
-                    return;
-                }
-
-                Object.defineProperty(cache, '$isExpired', {
-                    enumerable: false,
-                    get: function() {
-                        return isExpired
-                    },
-                    set: function(value) {
-                        isExpired = value;
+                function isExpired(cache) {
+                    if (!cache) {
+                        return false;
                     }
-                });
-            }
+                    var timestamp = cache.$timestamp;
+                    if (!timestamp) {
+                        return false;
+                    }
 
-            function cacheTime(instance, cacheTime) {
-                var defaultTime = defaultCacheTime;
-                if (!angular.isDefined(instance.$cacheTime)) {
-                    Object.defineProperty(instance, '$cacheTime', {
+                    var timeNow = new Date().getTime();
+                    return timeNow - timestamp > factory.cachedTime;
+                }
+
+                function setTimestamp(cachedItem) {
+                    var date = new Date().getTime();
+
+                    if (!angular.isDefined(cachedItem.$timestamp)) {
+                        Object.defineProperty(cachedItem, '$timestamp', {
+                            enumerable: false,
+                            get: function() {
+                                return date;
+                            },
+                            set: function(newDate) {
+                                date = newDate;
+                            }
+                        });
+                    }
+
+                    cachedItem.$timestamp = date;
+
+                    return cachedItem;
+                }
+
+                function setIsExpired(cache) {
+                    var isExpired = false;
+
+                    if (angular.isDefined(cache.$isExpired)) {
+                        return;
+                    }
+
+                    Object.defineProperty(cache, '$isExpired', {
                         enumerable: false,
                         get: function() {
-                            return defaultTime
+                            return isExpired
                         },
                         set: function(value) {
-                            defaultTime = value;
+                            isExpired = value;
                         }
                     });
                 }
-                instance.$cacheTime = cacheTime;
-                return instance;
             }
         });
 })();
