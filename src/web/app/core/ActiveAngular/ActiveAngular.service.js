@@ -11,12 +11,12 @@
         }
 
         this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject) {
-            function ActiveAngular(url) {
+            function ActiveAngular(url, options) {
                 var self = this;
                 var defer = $q.defer();
                 this.url = url;
 
-                this.$cache = activeAngularCache.create();
+                this.$cache = activeAngularCache.create(options);
                 this.$promise = defer.promise;
                 this.$get = $get;
                 this.$query = $query;

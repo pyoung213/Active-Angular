@@ -9,9 +9,12 @@
 
             return cache;
 
-            function create() {
+            function create(options) {
                 var cached = {};
-                var defaultCacheTime = 1000 * 60 * 5 // 5 minutes.
+                var cacheTime = 1000 * 60 * 5; // 5 minutes.
+                if (options && options.cacheTime) {
+                    cacheTime = options.cacheTime
+                }
 
                 var factory = {
                     get: get,
@@ -23,7 +26,7 @@
                     findAndRemove: findAndRemove,
                     isExpired: isExpired,
                     cached: cached,
-                    cachedTime: defaultCacheTime
+                    cachedTime: cacheTime
                 }
 
                 return factory;
