@@ -66,6 +66,16 @@ describe('ActiveAngular', function() {
             $httpBackend.flush();
         });
 
+        it('should query with params and cache', function() {
+            var getMockData = {
+                sort: 'something',
+                param: 'another'
+            }
+            Post.$query(getMockData);
+            var key = "undefinedparam=another&sort=something";
+            expect(Post.$cache.cached[key]).to.exist;
+        });
+
         it('should get array and be able to use actions on it', function() {
             $httpBackend.expectGET('/posts').respond(200, posts);
             var allPosts = Post.$query();

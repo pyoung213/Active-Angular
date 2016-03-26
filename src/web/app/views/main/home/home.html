@@ -1,8 +1,29 @@
 <div class="home-container">
     <h2>Content!</h2>
-    <div ng-repeat="post in vm.posts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
-        {{post}}
+    <div layout="row">
+        <div layout="column" flex>
+            <h1>Params</h1>
+            <div ng-repeat="post in vm.posts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
+                <div>{{post.id}}</div>
+                <div>{{post.message}}</div>
+            </div>
+            <div layout-align="center center">
+                <md-button class="md-primary md-raised" ng-click="vm.getNextPage()">Next Page</md-button>
+            </div>
+        </div>
+        <div layout="column" flex>
+            <h1>Normal</h1>
+            <md-input-container>
+                <label>Search</label>
+                <input ng-model="vm.filterQuery" ng-change="vm.filter()" ng-model-options="{ debounce: 200 }" />
+          </md-input-container>
+            <div ng-repeat="post in vm.filteredPosts || vm.otherPosts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
+                <div>{{post.id}}</div>
+                <div>{{post.message}}</div>
+            </div>
+        </div>
     </div>
+
     <h4>{{vm.posts.timestamp | date:'short'}}</h4>
     <h3>Single Post</h3>
     <div ng-click="vm.editPostMessage(vm.post)">

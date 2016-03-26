@@ -2,12 +2,23 @@ angular
     .module('app.web')
     .controller('HomeController', HomeController);
 
-function HomeController(posts, $timeout) {
+function HomeController(posts) {
     var vm = this;
-    vm.posts = posts.$query();
+    var pageNumber = 1;
+    var params = {
+        sortBy: 'createdAt',
+        limit: 4,
+        page: pageNumber
+    }
+    vm.filterQuery = '';
+    vm.posts = posts.$query(params);
+    vm.otherPosts = posts.$query();
+
 
     vm.editPostMessage = editPostMessage;
     vm.savePost = savePost;
+    vm.filter = filter;
+    vm.getNextPage = getNextPage;
 
     function editPostMessage(post) {
         post.$remove();
@@ -20,6 +31,26 @@ function HomeController(posts, $timeout) {
             .then(function() {
                 vm.message = '';
             });
+    }
+
+    function getNextPage() {
+        pageNumber++;
+        var params = {
+            sortBy: 'createdAt',
+            limit: 4,
+            page: pageNumber
+        }
+        posts.$query(params).$promise
+            .then(function(data) {
+                vm.posts.unshift(data);
+            });
+    }
+
+    function filter() {
+        var filter = {
+            filter: vm.filterQuery
+        }
+        vm.filteredPosts = posts.$query(filter);
     }
 
     vm.post = posts.$get('3');

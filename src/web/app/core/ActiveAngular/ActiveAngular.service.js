@@ -30,6 +30,10 @@
                 this._undefinedToObject = _undefinedToObject;
 
                 function $query(options, reference) {
+                    reference = reference || '';
+                    if (options) {
+                        reference = $httpParamSerializerJQLike(options) + reference
+                    }
                     return _get.call(this, options, reference, true);
                 }
 
@@ -51,7 +55,18 @@
                         return cachedItem;
                     }
                     if (!cachedItem) {
+                        var itemDefer = $q.defer();
                         cachedItem = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
+
+                        Object.defineProperty(cachedItem, '$promise', {
+                            enumerable: false,
+                            value: itemDefer.promise
+                        });
+
+                        Object.defineProperty(cachedItem, '$deferPromise', {
+                            enumerable: false,
+                            value: itemDefer
+                        });
                     }
 
                     //reference creation.
@@ -74,7 +89,7 @@
                                 data = self.$cache.setArray(data)
                             }
                             referenceObject = _.extend(referenceObject, data);
-                            // defer.resolve(referenceObject);
+                            referenceObject.$deferPromise.resolve(referenceObject);
                         })
                         .catch(function(_error) {
 
