@@ -11,7 +11,7 @@
                 author: users
             },
             edges: {
-                get: {
+                query: {
                     comments: comments
                 }
             }

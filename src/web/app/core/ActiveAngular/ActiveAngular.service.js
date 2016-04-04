@@ -26,6 +26,7 @@
                 self.$get = $get;
                 self.$query = $query;
                 self.$edgeQuery = $edgeQuery;
+                self.$edgeGet = $edgeGet;
                 self.$save = $save;
                 self.$remove = $remove;
                 self.$create = $create;
@@ -41,7 +42,10 @@
                         return object;
                     }
                     _.forEach(object.$edges.get, function(value, key) {
-                        object['$get' + _.capitalize(key)] = value.$edgeQuery;
+                        object['$get' + _.capitalize(key)] = value.$edgeGet;
+                    });
+                    _.forEach(object.$edges.query, function(value, key) {
+                        object['$query' + _.capitalize(key)] = value.$edgeQuery;
                     });
                     return object;
                 }
@@ -54,15 +58,30 @@
                     return _get.call(this, options, reference, true);
                 }
 
-                function $edgeQuery(options, reference) {
-                    if (!options.id) {
-                        return;
+                function $edgeGet(options) {
+                    options = _stringToObject(options);
+                    var url = this.url;
+
+                    if (url.indexOf(':id') > -1 && options.id) {
+                        url = url.replace(':id', options.id);
+                        delete options.id;
                     }
-                    edgeUrl = "posts/" + options.id;
-                    if (options) {
-                        reference = $httpParamSerializerJQLike(_.omit(options, 'id'))
+
+                    edgeUrl = url;
+                    return _get.call(this, options, edgeUrl, false);
+                }
+
+                function $edgeQuery(options) {
+                    options = _stringToObject(options);
+                    var url = this.url;
+
+                    if (url.indexOf(':id') > -1 && options.id) {
+                        url = url.replace(':id', options.id);
+                        delete options.id;
                     }
-                    return _get.call(this, options, reference, true);
+
+                    edgeUrl = url;
+                    return _get.call(this, options, edgeUrl, true);
                 }
 
                 function $get(options, reference) {

@@ -12,7 +12,7 @@ function HomeController(posts, comments, $timeout) {
     }
     vm.filterQuery = '';
     vm.posts = posts.$query(params);
-    vm.otherPosts = posts.$query();
+    vm.comments = posts.$queryComments('1');
 
     vm.editPostMessage = editPostMessage;
     vm.savePost = savePost;
@@ -73,8 +73,7 @@ function HomeController(posts, comments, $timeout) {
 
     vm.post = posts.$get('3');
     vm.postCache = posts.$cache;
-    // vm.commentCache = comments.$cache;
-    // console.log(vm.posts.$get)
+    vm.commentCache = comments.$cache;
 
     posts.$promise
         .then(function() {});

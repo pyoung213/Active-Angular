@@ -174,14 +174,33 @@ describe('ActiveAngular', function() {
             var Comments = new ActiveAngular('comments/:id');
             var options = {
                 edges: {
-                    get: {
+                    query: {
                         comments: Comments
                     }
                 }
             }
             var Posts = new ActiveAngular('posts/:id', options);
-            expect(Posts.$getComments).to.exist;
-        })
+            $httpBackend.expectGET('/posts/2/comments').respond(200, posts);
+            Posts.$queryComments('2');
+            $httpBackend.flush();
+        });
+        it('should create an edge and hyrate it', function() {
+            // var Comments = new ActiveAngular('comments/:id');
+            // var options = {
+            //     hydrate: {
+            //         comments: Comments
+            //     },
+            //     edges: {
+            //         query: {
+            //             comments: Comments
+            //         }
+            //     }
+            // }
+            // var Posts = new ActiveAngular('posts/:id', options);
+            // $httpBackend.expectGET('/posts/2/comments').respond(200, posts);
+            // Posts.$queryComments('2');
+            // $httpBackend.flush();
+        });
     });
 
     describe('$$http', function() {
