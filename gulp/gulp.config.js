@@ -40,6 +40,11 @@ var config = {
     css: [
         path.join(temp, '**/*.css')
     ],
+    dist: path.join(root_path, 'dist/'),
+    activeAngular: [
+        path.join(clientApp, 'core/ActiveAngular/**/*.js'),
+        '!' + path.join(clientApp, 'core/ActiveAngular/**/*.spec.js')
+    ],
     environmentConfig: {
         src: client + 'config/environment.config.json',
         module: 'app.core',

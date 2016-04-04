@@ -1,31 +1,35 @@
 describe('ActiveAngular', function() {
-    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, activeAngularCache, ActiveObject, $q, post, activePosts,
+    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, ActiveObject, $q, post, activePosts, activeAngularConstant,
         userId = "1234567890",
         url = "posts/:id";
 
     beforeEach(module('activeAngular'));
 
-    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_, _activeAngularCache_) {
+    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_, _activeAngularConstant_) {
         sandbox = sinon.sandbox.create();
         ActiveAngular = _ActiveAngular_;
         ActiveArray = _ActiveArray_;
         ActiveObject = _ActiveObject_;
         Post = new ActiveAngular(url);
         $httpBackend = _$httpBackend_;
-        activeAngularCache = _activeAngularCache_;
+        activeAngularConstant = _activeAngularConstant_;
         $q = _$q_;
 
         posts = [{
             id: '1',
+            author: '1',
             message: "test"
         }, {
             id: '2',
+            author: '2',
             message: "test"
         }, {
             id: '3',
+            author: '3',
             message: "test"
         }, {
             id: '4',
+            author: '4',
             message: "test"
         }];
 
@@ -122,6 +126,62 @@ describe('ActiveAngular', function() {
             expect(myPost.$save).to.exist;
             expect(myPost.$remove).to.exist;
         });
+    });
+
+    describe('$hydrate', function() {
+        it('should hydrate get into list of posts', function() {
+            var Users = new ActiveAngular('user/:id');
+            var options = {
+                hydrate: {
+                    author: Users
+                }
+            }
+            var author = {
+                id: 1,
+                full_name: "Awesome Sauce"
+            }
+            var Posts = new ActiveAngular('posts/:id', options);
+            $httpBackend.expectGET('/posts').respond(200, posts);
+            $httpBackend.expectGET('/user/1').respond(200, author);
+            $httpBackend.expectGET('/user/2').respond(200, author);
+            $httpBackend.expectGET('/user/3').respond(200, author);
+            $httpBackend.expectGET('/user/4').respond(200, author);
+            Posts.$query();
+            $httpBackend.flush();
+        });
+
+        it('should hydrate get one post', function() {
+            var Users = new ActiveAngular('user/:id');
+            var options = {
+                hydrate: {
+                    author: Users
+                }
+            }
+            var author = {
+                id: 1,
+                full_name: "Awesome Sauce"
+            }
+            var Posts = new ActiveAngular('posts/:id', options);
+            $httpBackend.expectGET('/posts/1').respond(200, posts[0]);
+            $httpBackend.expectGET('/user/1').respond(200, author);
+            Posts.$get('1');
+            $httpBackend.flush();
+        });
+    });
+
+    describe('$edges', function() {
+        it('should create an edge that can be called', function() {
+            var Comments = new ActiveAngular('comments/:id');
+            var options = {
+                edges: {
+                    get: {
+                        comments: Comments
+                    }
+                }
+            }
+            var Posts = new ActiveAngular('posts/:id', options);
+            expect(Posts.$getComments).to.exist;
+        })
     });
 
     describe('$$http', function() {
@@ -241,7 +301,7 @@ describe('ActiveAngular', function() {
             it('should turn undefined to object with set id', function() {
                 var object = Post._undefinedToObject();
                 expect(object).to.be.an('object');
-                expect(object.id).to.be.equal('undefined');
+                expect(object.id).to.be.equal(activeAngularConstant.NO_ID);
             });
 
             it('should return same object', function() {

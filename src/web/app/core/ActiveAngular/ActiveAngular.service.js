@@ -10,29 +10,57 @@
             baseUrl = base;
         }
 
-        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject) {
+        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant) {
             function ActiveAngular(url, options) {
+                options = options || {};
                 var self = this;
                 var defer = $q.defer();
-                this.url = url;
+                var edgeUrl = '';
 
-                this.$cache = activeAngularCache.create(options);
-                this.$promise = defer.promise;
-                this.$get = $get;
-                this.$query = $query;
-                this.$save = $save;
-                this.$remove = $remove;
-                this.$create = $create;
-                this.$edges = undefined;
-                this.$$http = $$http;
-                this._get = _get;
-                this._stringToObject = _stringToObject;
-                this._undefinedToObject = _undefinedToObject;
+                self.url = url;
+                self.$cache = activeAngularCache.create(options);
+                self.$edges = options.edges;
+                self.$hydrate = options.hydrate;
+                self.$edges = options.edges;
+                self.$promise = defer.promise;
+                self.$get = $get;
+                self.$query = $query;
+                self.$edgeQuery = $edgeQuery;
+                self.$save = $save;
+                self.$remove = $remove;
+                self.$create = $create;
+                self.$$http = $$http;
+                self._get = _get;
+                self._stringToObject = _stringToObject;
+                self._undefinedToObject = _undefinedToObject;
+
+                self = createEdges(self);
+
+                function createEdges(object) {
+                    if (!object.$edges) {
+                        return object;
+                    }
+                    _.forEach(object.$edges.get, function(value, key) {
+                        object['$get' + _.capitalize(key)] = value.$edgeQuery;
+                    });
+                    return object;
+                }
 
                 function $query(options, reference) {
                     reference = reference || '';
                     if (options) {
                         reference = $httpParamSerializerJQLike(options) + reference
+                    }
+                    return _get.call(this, options, reference, true);
+                }
+
+                function $edgeQuery(options, reference) {
+                    if (!options.id) {
+                        return;
+                    }
+                    edgeUrl = "posts/" + options.id;
+                    if (options) {
+                        reference = $httpParamSerializerJQLike(_.omit(options, 'id'))
                     }
                     return _get.call(this, options, reference, true);
                 }
@@ -82,18 +110,31 @@
                             var isDataArray = angular.isArray(data);
                             if (isDataArray != isArray) {
                                 logMismatchError(response, isDataArray);
-                                return;
                             }
                             data = inheritActiveClass(data);
+
                             if (isDataArray) {
-                                data = self.$cache.setArray(data)
+                                _.forEach(data, function(value, key) {
+                                    data[key] = hydyrateData(value);
+                                });
+                                data = self.$cache.setArray(data);
+                            } else {
+                                data = hydyrateData(data);
                             }
                             referenceObject = _.extend(referenceObject, data);
                             referenceObject.$deferPromise.resolve(referenceObject);
                         })
-                        .catch(function(_error) {
+                        .catch(function(_error) {});
+                }
 
-                        })
+                function hydyrateData(data) {
+                    if (!self.$hydrate) {
+                        return data;
+                    }
+                    _.forEach(self.$hydrate, function(value, key) {
+                        data[key] = value.$get(data[key]);
+                    });
+                    return data;
                 }
 
                 function inheritActiveClass(data) {
@@ -120,6 +161,7 @@
 
                 function $save(options) {
                     var item = this;
+                    edgeUrl = "";
 
                     if (!options) {
                         return;
@@ -134,9 +176,6 @@
                     self.$cache.set(savedChanges.id, savedChanges);
 
                     return self.$$http('PUT', options)
-                        .then(function(response) {
-                            self.$cache.set(response.data.id, response.data);
-                        })
                         .catch(function() {
                             self.$cache.set(oldCopy.id, oldCopy);
                         });
@@ -167,35 +206,49 @@
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
-                    options = _.omit(options, 'id');
                     options = {
                         method: method,
                         url: self.url,
                         id: id,
-                        data: options
+                        data: _.omit(options, 'id')
+                    }
+
+                    //TODO: This all seems hacky...
+                    if (edgeUrl) {
+                        options.url = _removeIdParam(options.url);
+                        options.url = edgeUrl + "/" + options.url;
+                        edgeUrl = "";
                     }
 
                     //if no id, strip instances of :id
-                    if (!options.id || options.id === 'undefined') {
-                        options.url = options.url.replace(':id', '');
+                    if (!options.id || options.id === activeAngularConstant.NO_ID) {
+                        options.url = _removeIdParam(options.url);
                         delete options.id;
-                        options.url = options.url.replace('//', '/');
-                        options.url = _.trimEnd(options.url, '/');
                     }
 
                     //replace :id with options.id
-                    if (self.url.indexOf(':id') > -1 && options.id) {
+                    if (options.url.indexOf(':id') > -1 && options.id) {
                         options.url = self.url.replace(':id', options.id);
                         delete options.id;
                     }
+
                     if (options.method === 'GET' && Object.keys(options.data).length) {
                         options.url += options.url.indexOf('?') == -1 ? '?' : '&';
                         options.url += $httpParamSerializerJQLike(options.data);
                     }
 
+                    console.log(options.url);
+
                     options.url = baseUrl + '/' + options.url;
 
                     return $http(options);
+                }
+
+                function _removeIdParam(url) {
+                    url = url.replace(':id', '');
+                    url = url.replace('//', '/');
+                    url = _.trimEnd(url, '/');
+                    return url;
                 }
 
                 function _stringToObject(options) {
@@ -210,7 +263,7 @@
                 function _undefinedToObject(options, item) {
                     if (angular.isUndefined(options)) {
                         options = {};
-                        var key = item ? item.id : 'undefined';
+                        var key = item ? item.id : activeAngularConstant.NO_ID;
                         options.id = key;
                     }
 
