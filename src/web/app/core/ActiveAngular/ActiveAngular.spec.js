@@ -100,6 +100,18 @@ describe('ActiveAngular', function() {
             allPosts.$get(postId);
             $httpBackend.flush();
         });
+
+        it('should get a collection and turn it into an array', function() {
+            var collection = {};
+            collection.items = posts;
+            collection._count = 100;
+            $httpBackend.expectGET('/posts').respond(200, collection);
+            var somePosts = Post.$query();
+            $httpBackend.flush();
+
+            expect(somePosts[1].id).to.be.equal(posts[1].id);
+            expect(somePosts._count).to.exist;
+        });
     });
 
     describe('$get', function() {

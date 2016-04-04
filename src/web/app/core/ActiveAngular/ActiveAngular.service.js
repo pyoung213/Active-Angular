@@ -5,9 +5,14 @@
 
     function ActiveAngularBase() {
         var baseUrl = '';
+        var collectionKey = 'items';
 
         this.setBaseUrl = function(base) {
             baseUrl = base;
+        }
+
+        this.setCollectionKey = function(key) {
+            collectionKey = key;
         }
 
         this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant) {
@@ -61,10 +66,8 @@
                 function $edgeGet(options) {
                     options = _stringToObject(options);
                     var url = this.url;
-                    if (url.indexOf(':id') > -1 && options.id) {
-                        url = url.replace(':id', options.id);
-                        delete options.id;
-                    }
+                    url = _replaceUrlIdWithOptionsId(url, options.id)
+                    delete options.id
 
                     edgeUrl = url;
                     return _get.call(this, options, edgeUrl, false);
@@ -74,10 +77,8 @@
                     options = _stringToObject(options);
                     var url = this.url;
 
-                    if (url.indexOf(':id') > -1 && options.id) {
-                        url = url.replace(':id', options.id);
-                        delete options.id;
-                    }
+                    url = _replaceUrlIdWithOptionsId(url, options.id)
+                    delete options.id
 
                     edgeUrl = url;
                     return _get.call(this, options, edgeUrl, true);
@@ -126,9 +127,15 @@
                         .then(function(response) {
                             var data = response.data;
                             var isDataArray = angular.isArray(data);
+
                             if (isDataArray != isArray) {
-                                logMismatchError(response, isDataArray);
+                                if (!data[collectionKey]) {
+                                    return logMismatchError(response, isDataArray);
+                                }
+                                referenceObject = _enumMeta(referenceObject, data);
+                                data = _hydrateCollection(data);
                             }
+
                             data = inheritActiveClass(data);
 
                             if (isDataArray) {
@@ -139,10 +146,30 @@
                             } else {
                                 data = hydyrateData(data);
                             }
-                            referenceObject = _.extend(referenceObject, data);
+                            referenceObject = _.assign(referenceObject, data);
                             referenceObject.$deferPromise.resolve(referenceObject);
-                        })
-                        .catch(function(_error) {});
+                        });
+                }
+
+                function _enumMeta(ref, data) {
+                    _.forEach(data, function(value, key) {
+                        if (key !== collectionKey) {
+                            Object.defineProperty(ref, key, {
+                                enumerable: false,
+                                value: value
+                            });
+                        }
+                    });
+                    return ref;
+                }
+
+                function _hydrateCollection(collection) {
+                    var data = {};
+
+                    _.forEach(collection.items, function(value, key) {
+                        data[key] = value
+                    });
+                    return data;
                 }
 
                 function hydyrateData(data) {
@@ -182,7 +209,7 @@
                         $log.error(response.config.url + ' Expected an Object and got an Array from server.');
                         return;
                     }
-                    $log.error(response.config.url + ' Expected an Array and got an Object from server.');
+                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + collectionKey + ' not set.');
                 }
 
                 function $save(options) {
@@ -252,11 +279,8 @@
                         delete options.id;
                     }
 
-                    //replace :id with options.id
-                    if (options.url.indexOf(':id') > -1 && options.id) {
-                        options.url = self.url.replace(':id', options.id);
-                        delete options.id;
-                    }
+                    options.url = _replaceUrlIdWithOptionsId(options.url, options.id);
+                    delete options.id;
 
                     if (options.method === 'GET' && Object.keys(options.data).length) {
                         options.url += options.url.indexOf('?') == -1 ? '?' : '&';
@@ -266,6 +290,13 @@
                     options.url = baseUrl + '/' + options.url;
 
                     return $http(options);
+                }
+
+                function _replaceUrlIdWithOptionsId(url, id) {
+                    if (url.indexOf(':id') > -1 && id) {
+                        url = url.replace(':id', id);
+                    }
+                    return url;
                 }
 
                 function _removeIdParam(url) {
