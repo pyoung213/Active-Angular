@@ -61,7 +61,6 @@
                 function $edgeGet(options) {
                     options = _stringToObject(options);
                     var url = this.url;
-
                     if (url.indexOf(':id') > -1 && options.id) {
                         url = url.replace(':id', options.id);
                         delete options.id;
@@ -151,6 +150,14 @@
                         return data;
                     }
                     _.forEach(self.$hydrate, function(value, key) {
+                        if (self.$edges && self.$edges.query && self.$edges.query[key]) {
+                            data[key] = self.$edges.query[key].$edgeQuery.call(self, data[key] || data.id);
+                            return;
+                        }
+                        if (self.$edges && self.$edges.get && self.$edges.get[key]) {
+                            data[key] = self.$edges.query[key].$edgeGet.call(self, data[key] || data.id);
+                            return;
+                        }
                         data[key] = value.$get(data[key]);
                     });
                     return data;
@@ -255,8 +262,6 @@
                         options.url += options.url.indexOf('?') == -1 ? '?' : '&';
                         options.url += $httpParamSerializerJQLike(options.data);
                     }
-
-                    console.log(options.url);
 
                     options.url = baseUrl + '/' + options.url;
 
