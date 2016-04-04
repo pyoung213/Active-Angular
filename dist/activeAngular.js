@@ -31,7 +31,6 @@ angular
                 options = options || {};
                 var self = this;
                 var defer = $q.defer();
-                var edgeUrl = '';
 
                 self.url = url;
                 self.$cache = activeAngularCache.create(options);
@@ -80,8 +79,8 @@ angular
                     url = _replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    edgeUrl = url;
-                    return _get.call(this, options, edgeUrl, false);
+                    options.url = url + "/" + _removeIdParam(self.url);
+                    return _get.call(this, options, null, false);
                 }
 
                 function $edgeQuery(options) {
@@ -91,8 +90,8 @@ angular
                     url = _replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    edgeUrl = url;
-                    return _get.call(this, options, edgeUrl, true);
+                    options.url = url + "/" + _removeIdParam(self.url);
+                    return _get.call(this, options, null, true);
                 }
 
                 function $get(options, reference) {
@@ -106,7 +105,18 @@ angular
                     options = _undefinedToObject(options);
 
                     //caching check
-                    var key = reference ? options.id + reference : options.id;
+                    var key = '';
+                    if (options.id) {
+                        key += options.id
+                    }
+
+                    if (options.url) {
+                        key += options.url;
+                    }
+
+                    if (reference) {
+                        key += reference
+                    }
                     var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
@@ -114,7 +124,7 @@ angular
                     }
                     if (!cachedItem) {
                         var itemDefer = $q.defer();
-                        cachedItem = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
+                        cachedItem = isArray ? ActiveArray.decorateArray([], self) : new ActiveObject({}, self);
 
                         Object.defineProperty(cachedItem, '$promise', {
                             enumerable: false,
@@ -133,7 +143,7 @@ angular
                     return cachedItem;
                 }
 
-                function asyncGetRequest(options, referenceObject, isArray) {
+                function asyncGetRequest(options, cachedItem, isArray) {
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
@@ -143,7 +153,7 @@ angular
                                 if (!data[collectionKey]) {
                                     return logMismatchError(response, isDataArray);
                                 }
-                                referenceObject = _enumMeta(referenceObject, data);
+                                cachedItem = _enumMeta(cachedItem, data);
                                 data = _hydrateCollection(data);
                             }
 
@@ -157,8 +167,8 @@ angular
                             } else {
                                 data = hydyrateData(data);
                             }
-                            referenceObject = _.assign(referenceObject, data);
-                            referenceObject.$deferPromise.resolve(referenceObject);
+                            cachedItem = _.assign(cachedItem, data);
+                            cachedItem.$deferPromise.resolve(cachedItem);
                         });
                 }
 
@@ -203,7 +213,7 @@ angular
 
                 function inheritActiveClass(data) {
                     if (angular.isArray(data)) {
-                        data = new ActiveArray(data, self);
+                        data = ActiveArray.decorateArray(data, self);
 
                         _.forEach(data, function(value, key) {
                             data[key] = new ActiveObject(value, self);
@@ -225,7 +235,6 @@ angular
 
                 function $save(options) {
                     var item = this;
-                    edgeUrl = "";
 
                     if (!options) {
                         return;
@@ -270,18 +279,12 @@ angular
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
+                    var edgeUrl = options.url;
                     options = {
                         method: method,
-                        url: self.url,
+                        url: edgeUrl || self.url,
                         id: id,
-                        data: _.omit(options, 'id')
-                    }
-
-                    //TODO: This all seems hacky...
-                    if (edgeUrl) {
-                        options.url = _removeIdParam(options.url);
-                        options.url = edgeUrl + "/" + options.url;
-                        edgeUrl = "";
+                        data: _.omit(options, 'id', 'url')
                     }
 
                     //if no id, strip instances of :id
@@ -397,7 +400,7 @@ angular
                 }
 
                 function setArray(data) {
-                    _.forOwn(data, function(item, key) {
+                    _.forEach(data, function(item, key) {
                         data[key] = factory.set(item.id, item);
                     });
                     return data;
@@ -411,8 +414,8 @@ angular
 
                 function findAndRemove(cache, key) {
                     //We need to clean out the empty object in the array.
-                    _.forOwn(cache, function(item, itemkey) {
-                        if (!item.$isArray) {
+                    _.forEach(cache, function(item, itemkey) {
+                        if (!angular.isArray(item)) {
                             return;
                         }
                         _.forOwn(item, function(activeObject, activeKey) {
@@ -482,75 +485,92 @@ angular
     angular
         .module('activeAngular')
         .factory('ActiveArray', function() {
-            function ActiveArray(data, instance) {
-                var self = this;
-                _.forOwn(data, function(value, key) {
-                    self[key] = value;
-                });
-
-                Object.defineProperty(self, '$remove', {
-                    enumerable: false,
-                    value: function(options) {
-                        instance.$remove(options)
-                    }
-                });
-
-                Object.defineProperty(self, '$create', {
-                    enumerable: false,
-                    value: function(options) {
-                        instance.$create(options)
-                    }
-                });
-
-                Object.defineProperty(self, '$get', {
-                    enumerable: false,
-                    value: function(options, reference) {
-                        instance.$get(options, reference)
-                    }
-                });
-
-                Object.defineProperty(self, '$isArray', {
-                    enumerable: false,
-                    value: true
-                });
-
-                Object.defineProperty(self, 'push', {
-                    enumerable: false,
-                    value: function(item) {
-                        var collection = this;
-                        var length = Object.keys(collection).length;
-
-                        if (item.$isArray) {
-                            _.forOwn(item, function(value) {
-                                collection[length] = value;
-                                length++;
-                            });
-                            return collection;
-                        }
-
-                        return collection[length] = item;
-                    }
-                });
-
-                Object.defineProperty(self, 'unshift', {
-                    enumerable: false,
-                    value: function(item) {
-                        var collection = this;
-                        var length = Object.keys(item).length;
-
-                        _.forEachRight(collection, function(value, key) {
-                            collection[length + key] = value;
-                        });
-
-                        _.forEach(item, function(value, key) {
-                            collection[key] = value;
-                        });
-                        return collection;
-                    }
-                });
+            var service = {
+                decorateArray: decorateArray
             }
 
-            return ActiveArray;
+            return service;
+
+            function decorateArray(data, instance) {
+                data['$remove'] = function(options) {
+                    instance.$remove(options);
+                };
+                data['$create'] = function(options) {
+                    instance.$create(options)
+                }
+                data['$get'] = function(options, reference) {
+                    instance.$get(options, reference)
+                };
+
+                return data;
+            }
+
+            // function ActiveArray(data, instance) {
+            //     return data;
+
+            // Object.defineProperty(self, '$remove', {
+            //     enumerable: false,
+            //     value: function(options) {
+            //         instance.$remove(options)
+            //     }
+            // });
+            //
+            // Object.defineProperty(self, '$create', {
+            //     enumerable: false,
+            //     value: function(options) {
+            //         instance.$create(options)
+            //     }
+            // });
+            //
+            // Object.defineProperty(self, '$get', {
+            //     enumerable: false,
+            //     value: function(options, reference) {
+            //         instance.$get(options, reference)
+            //     }
+            // });
+            //
+            // Object.defineProperty(self, '$isArray', {
+            //     enumerable: false,
+            //     value: true
+            // });
+            //
+            // Object.defineProperty(self, 'push', {
+            //     enumerable: false,
+            //     value: function(item) {
+            //         var collection = this;
+            //         var length = Object.keys(collection).length;
+            //
+            //         if (item.$isArray) {
+            //             _.forOwn(item, function(value) {
+            //                 collection[length] = value;
+            //                 length++;
+            //             });
+            //             return collection;
+            //         }
+            //
+            //         return collection[length] = item;
+            //     }
+            // });
+            //
+            // Object.defineProperty(self, 'unshift', {
+            //     enumerable: false,
+            //     value: function(item) {
+            //         var collection = this;
+            //         var length = Object.keys(item).length;
+            //
+            //         _.forEachRight(collection, function(value, key) {
+            //             collection[length + key] = value;
+            //         });
+            //
+            //         _.forEach(item, function(value, key) {
+            //             collection[key] = value;
+            //         });
+            //         return collection;
+            //     }
+            // });
+            // }
+
+            // return ActiveArray;
         });
 })();
 

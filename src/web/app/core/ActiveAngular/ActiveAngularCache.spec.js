@@ -24,7 +24,7 @@ describe('ActiveAngularCache', function() {
             id: '4',
             message: "test"
         }];
-        posts = new ActiveArray(posts, Instance);
+        posts = ActiveArray.decorateArray(posts, Instance);
     }));
 
     afterEach(function() {
@@ -112,6 +112,9 @@ describe('ActiveAngularCache', function() {
 
         createdCache.findAndRemove(createdCache.cached, post.id);
         var found = _.find(createdCache.cached['undefined'], function(item) {
+            if (!item) {
+                return;
+            }
             if (item.id === post.id) {
                 return item;
             }

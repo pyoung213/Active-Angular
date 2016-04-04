@@ -52,7 +52,7 @@
                 }
 
                 function setArray(data) {
-                    _.forOwn(data, function(item, key) {
+                    _.forEach(data, function(item, key) {
                         data[key] = factory.set(item.id, item);
                     });
                     return data;
@@ -66,8 +66,8 @@
 
                 function findAndRemove(cache, key) {
                     //We need to clean out the empty object in the array.
-                    _.forOwn(cache, function(item, itemkey) {
-                        if (!item.$isArray) {
+                    _.forEach(cache, function(item, itemkey) {
+                        if (!angular.isArray(item)) {
                             return;
                         }
                         _.forOwn(item, function(activeObject, activeKey) {

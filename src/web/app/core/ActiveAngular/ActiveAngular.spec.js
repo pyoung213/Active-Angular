@@ -33,7 +33,7 @@ describe('ActiveAngular', function() {
             message: "test"
         }];
 
-        activePosts = new ActiveArray(posts, Post);
+        activePosts = ActiveArray.decorateArray(posts, Post);
         _.forEach(activePosts, function(value, key) {
             activePosts[key] = new ActiveObject(value, self);
         });
@@ -55,11 +55,6 @@ describe('ActiveAngular', function() {
     });
 
     describe('$query', function() {
-        it('should return an instance of ActiveAngular', function() {
-            var newInstance = Post.$query();
-            expect(newInstance).to.be.an.instanceof(ActiveArray);
-        });
-
         it('should query with params', function() {
             var getMockData = {
                 sort: 'something',
@@ -76,7 +71,7 @@ describe('ActiveAngular', function() {
                 param: 'another'
             }
             Post.$query(getMockData);
-            var key = "undefinedparam=another&sort=something";
+            var key = "param=another&sort=something";
             expect(Post.$cache.cached[key]).to.exist;
         });
 

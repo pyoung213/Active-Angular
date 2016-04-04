@@ -20,7 +20,6 @@
                 options = options || {};
                 var self = this;
                 var defer = $q.defer();
-                var edgeUrl = '';
 
                 self.url = url;
                 self.$cache = activeAngularCache.create(options);
@@ -69,8 +68,8 @@
                     url = _replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    edgeUrl = url;
-                    return _get.call(this, options, edgeUrl, false);
+                    options.url = url + "/" + _removeIdParam(self.url);
+                    return _get.call(this, options, null, false);
                 }
 
                 function $edgeQuery(options) {
@@ -80,8 +79,8 @@
                     url = _replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    edgeUrl = url;
-                    return _get.call(this, options, edgeUrl, true);
+                    options.url = url + "/" + _removeIdParam(self.url);
+                    return _get.call(this, options, null, true);
                 }
 
                 function $get(options, reference) {
@@ -95,7 +94,18 @@
                     options = _undefinedToObject(options);
 
                     //caching check
-                    var key = reference ? options.id + reference : options.id;
+                    var key = '';
+                    if (options.id) {
+                        key += options.id
+                    }
+
+                    if (options.url) {
+                        key += options.url;
+                    }
+
+                    if (reference) {
+                        key += reference
+                    }
                     var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
@@ -103,7 +113,7 @@
                     }
                     if (!cachedItem) {
                         var itemDefer = $q.defer();
-                        cachedItem = isArray ? new ActiveArray({}, self) : new ActiveObject({}, self);
+                        cachedItem = isArray ? ActiveArray.decorateArray([], self) : new ActiveObject({}, self);
 
                         Object.defineProperty(cachedItem, '$promise', {
                             enumerable: false,
@@ -122,7 +132,7 @@
                     return cachedItem;
                 }
 
-                function asyncGetRequest(options, referenceObject, isArray) {
+                function asyncGetRequest(options, cachedItem, isArray) {
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
@@ -132,7 +142,7 @@
                                 if (!data[collectionKey]) {
                                     return logMismatchError(response, isDataArray);
                                 }
-                                referenceObject = _enumMeta(referenceObject, data);
+                                cachedItem = _enumMeta(cachedItem, data);
                                 data = _hydrateCollection(data);
                             }
 
@@ -146,8 +156,8 @@
                             } else {
                                 data = hydyrateData(data);
                             }
-                            referenceObject = _.assign(referenceObject, data);
-                            referenceObject.$deferPromise.resolve(referenceObject);
+                            cachedItem = _.assign(cachedItem, data);
+                            cachedItem.$deferPromise.resolve(cachedItem);
                         });
                 }
 
@@ -192,7 +202,7 @@
 
                 function inheritActiveClass(data) {
                     if (angular.isArray(data)) {
-                        data = new ActiveArray(data, self);
+                        data = ActiveArray.decorateArray(data, self);
 
                         _.forEach(data, function(value, key) {
                             data[key] = new ActiveObject(value, self);
@@ -214,7 +224,6 @@
 
                 function $save(options) {
                     var item = this;
-                    edgeUrl = "";
 
                     if (!options) {
                         return;
@@ -259,18 +268,12 @@
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
+                    var edgeUrl = options.url;
                     options = {
                         method: method,
-                        url: self.url,
+                        url: edgeUrl || self.url,
                         id: id,
-                        data: _.omit(options, 'id')
-                    }
-
-                    //TODO: This all seems hacky...
-                    if (edgeUrl) {
-                        options.url = _removeIdParam(options.url);
-                        options.url = edgeUrl + "/" + options.url;
-                        edgeUrl = "";
+                        data: _.omit(options, 'id', 'url')
                     }
 
                     //if no id, strip instances of :id
