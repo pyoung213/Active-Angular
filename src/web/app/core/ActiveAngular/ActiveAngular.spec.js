@@ -310,36 +310,4 @@ describe('ActiveAngular', function() {
             expect(Ref.$$http.called).to.be.true;
         });
     });
-
-    describe('helpers', function() {
-        describe('stringToObject', function() {
-            it('should turn string to object', function() {
-                var object = Post._stringToObject('someString');
-                expect(object).to.be.an('object');
-            });
-
-            it('should return same object', function() {
-                var someObject = {
-                    id: 1234
-                }
-                var newObject = Post._stringToObject(someObject);
-                expect(someObject).to.be.equal(newObject);
-            });
-        });
-        describe('undefinedToObject', function() {
-            it('should turn undefined to object with set id', function() {
-                var object = Post._undefinedToObject();
-                expect(object).to.be.an('object');
-                expect(object.id).to.be.equal(activeAngularConstant.NO_ID);
-            });
-
-            it('should return same object', function() {
-                var someObject = {
-                    id: 1234
-                }
-                var newObject = Post._undefinedToObject(someObject);
-                expect(someObject).to.be.equal(newObject);
-            });
-        });
-    });
 });

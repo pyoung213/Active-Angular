@@ -15,7 +15,7 @@
             collectionKey = key;
         }
 
-        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant) {
+        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant, ActiveAngularUtilities) {
             function ActiveAngular(url, options) {
                 options = options || {};
                 var self = this;
@@ -36,8 +36,10 @@
                 self.$create = $create;
                 self.$$http = $$http;
                 self._get = _get;
-                self._stringToObject = _stringToObject;
-                self._undefinedToObject = _undefinedToObject;
+                self._hydrateCollection = _hydrateCollection;
+                self._hideMetadata = _hideMetadata;
+                self._hydyrateData = _hydyrateData;
+                self._logMismatchError = _logMismatchError;
 
                 self = createEdges(self);
 
@@ -63,23 +65,23 @@
                 }
 
                 function $edgeGet(options) {
-                    options = _stringToObject(options);
+                    options = ActiveAngularUtilities.stringToObject(options);
                     var url = this.url;
-                    url = _replaceUrlIdWithOptionsId(url, options.id)
+                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    options.url = url + "/" + _removeIdParam(self.url);
+                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
                     return _get.call(this, options, null, false);
                 }
 
                 function $edgeQuery(options) {
-                    options = _stringToObject(options);
+                    options = ActiveAngularUtilities.stringToObject(options);
                     var url = this.url;
 
-                    url = _replaceUrlIdWithOptionsId(url, options.id)
+                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
-                    options.url = url + "/" + _removeIdParam(self.url);
+                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
                     return _get.call(this, options, null, true);
                 }
 
@@ -90,8 +92,8 @@
                 function _get(options, reference, isArray) {
                     var self = this;
                     //cleanup options
-                    options = _stringToObject(options);
-                    options = _undefinedToObject(options);
+                    options = ActiveAngularUtilities.stringToObject(options);
+                    options = ActiveAngularUtilities.undefinedToObject(options);
 
                     //caching check
                     var key = '';
@@ -140,86 +142,25 @@
 
                             if (isDataArray != isArray) {
                                 if (!data[collectionKey]) {
-                                    return logMismatchError(response, isDataArray);
+                                    return _logMismatchError(response, isDataArray);
                                 }
-                                cachedItem = _enumMeta(cachedItem, data);
+                                cachedItem = _hideMetadata(cachedItem, data);
                                 data = _hydrateCollection(data);
                             }
 
-                            data = inheritActiveClass(data);
+                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
 
                             if (isDataArray) {
                                 _.forEach(data, function(value, key) {
-                                    data[key] = hydyrateData(value);
+                                    data[key] = _hydyrateData(value);
                                 });
                                 data = self.$cache.setArray(data);
                             } else {
-                                data = hydyrateData(data);
+                                data = _hydyrateData(data);
                             }
                             cachedItem = _.assign(cachedItem, data);
                             cachedItem.$deferPromise.resolve(cachedItem);
                         });
-                }
-
-                function _enumMeta(ref, data) {
-                    _.forEach(data, function(value, key) {
-                        if (key !== collectionKey) {
-                            Object.defineProperty(ref, key, {
-                                enumerable: false,
-                                value: value
-                            });
-                        }
-                    });
-                    return ref;
-                }
-
-                function _hydrateCollection(collection) {
-                    var data = {};
-
-                    _.forEach(collection.items, function(value, key) {
-                        data[key] = value
-                    });
-                    return data;
-                }
-
-                function hydyrateData(data) {
-                    if (!self.$hydrate) {
-                        return data;
-                    }
-                    _.forEach(self.$hydrate, function(value, key) {
-                        if (self.$edges && self.$edges.query && self.$edges.query[key]) {
-                            data[key] = self.$edges.query[key].$edgeQuery.call(self, data[key] || data.id);
-                            return;
-                        }
-                        if (self.$edges && self.$edges.get && self.$edges.get[key]) {
-                            data[key] = self.$edges.query[key].$edgeGet.call(self, data[key] || data.id);
-                            return;
-                        }
-                        data[key] = value.$get(data[key]);
-                    });
-                    return data;
-                }
-
-                function inheritActiveClass(data) {
-                    if (angular.isArray(data)) {
-                        data = ActiveArray.decorateArray(data, self);
-
-                        _.forEach(data, function(value, key) {
-                            data[key] = new ActiveObject(value, self);
-                        });
-
-                        return data;
-                    }
-
-                    return new ActiveObject(data, self);
-                }
-
-                function logMismatchError(response, isArray) {
-                    if (isArray) {
-                        $log.error(response.config.url + ' Expected an Object and got an Array from server.');
-                        return;
-                    }
-                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + collectionKey + ' not set.');
                 }
 
                 function $save(options) {
@@ -246,8 +187,8 @@
                 function $remove(options) {
                     var item = this;
 
-                    options = _stringToObject(options);
-                    options = _undefinedToObject(options, item);
+                    options = ActiveAngularUtilities.stringToObject(options);
+                    options = ActiveAngularUtilities.undefinedToObject(options, item);
 
                     return self.$$http('DELETE', options)
                         .then(function(response) {
@@ -278,11 +219,11 @@
 
                     //if no id, strip instances of :id
                     if (!options.id || options.id === activeAngularConstant.NO_ID) {
-                        options.url = _removeIdParam(options.url);
+                        options.url = ActiveAngularUtilities.removeIdParam(options.url);
                         delete options.id;
                     }
 
-                    options.url = _replaceUrlIdWithOptionsId(options.url, options.id);
+                    options.url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(options.url, options.id);
                     delete options.id;
 
                     if (options.method === 'GET' && Object.keys(options.data).length) {
@@ -295,42 +236,55 @@
                     return $http(options);
                 }
 
-                function _replaceUrlIdWithOptionsId(url, id) {
-                    if (url.indexOf(':id') > -1 && id) {
-                        url = url.replace(':id', id);
+                function _logMismatchError(response, isArray) {
+                    if (isArray) {
+                        $log.error(response.config.url + ' Expected an Object and got an Array from server.');
+                        return;
                     }
-                    return url;
+                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + collectionKey + ' not set.');
                 }
 
-                function _removeIdParam(url) {
-                    url = url.replace(':id', '');
-                    url = url.replace('//', '/');
-                    url = _.trimEnd(url, '/');
-                    return url;
+                function _hydyrateData(data) {
+                    if (!self.$hydrate) {
+                        return data;
+                    }
+                    _.forEach(self.$hydrate, function(value, key) {
+                        if (self.$edges && self.$edges.query && self.$edges.query[key]) {
+                            data[key] = self.$edges.query[key].$edgeQuery.call(self, data[key] || data.id);
+                            return;
+                        }
+                        if (self.$edges && self.$edges.get && self.$edges.get[key]) {
+                            data[key] = self.$edges.query[key].$edgeGet.call(self, data[key] || data.id);
+                            return;
+                        }
+                        data[key] = value.$get(data[key]);
+                    });
+                    return data;
                 }
 
-                function _stringToObject(options) {
-                    if (angular.isString(options)) {
-                        var id = options;
-                        options = {};
-                        options.id = id;
-                    }
-                    return options;
+                function _hydrateCollection(collection) {
+                    var data = {};
+
+                    _.forEach(collection[collectionKey], function(value, key) {
+                        data[key] = value
+                    });
+                    return data;
                 }
 
-                function _undefinedToObject(options, item) {
-                    if (angular.isUndefined(options)) {
-                        options = {};
-                        var key = item ? item.id : activeAngularConstant.NO_ID;
-                        options.id = key;
-                    }
-
-                    return options;
+                function _hideMetadata(ref, data) {
+                    _.forEach(data, function(value, key) {
+                        if (key !== collectionKey) {
+                            Object.defineProperty(ref, key, {
+                                enumerable: false,
+                                value: value
+                            });
+                        }
+                    });
+                    return ref;
                 }
             }
 
             return ActiveAngular;
-
         }
     }
 })();

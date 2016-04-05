@@ -8,8 +8,7 @@
     function posts(ActiveAngular, comments, users) {
         var options = {
             hydrate: {
-                author: users,
-                comments: comments
+                author: users
             },
             edges: {
                 query: {

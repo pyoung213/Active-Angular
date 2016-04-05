@@ -61,7 +61,7 @@ function HomeController(posts, comments, $timeout) {
         posts.$query(params).$promise
             .then(function(data) {
                 _.forEach(data, function(item) {
-                    vm.posts.unshift(item)
+                    vm.posts.push(item)
                 });
             });
     }
