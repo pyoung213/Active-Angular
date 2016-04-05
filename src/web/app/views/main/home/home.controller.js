@@ -19,6 +19,7 @@ function HomeController(posts, comments, $timeout) {
     vm.saveComment = saveComment;
     vm.filter = filter;
     vm.getNextPage = getNextPage;
+    vm.createPost = createPost;
 
     $timeout(function() {
         // debugger;
@@ -27,6 +28,16 @@ function HomeController(posts, comments, $timeout) {
 
     function editPostMessage(post) {
         post.$remove();
+    }
+
+    function createPost(message) {
+        var params = {
+            message: message
+        }
+        posts.$create(params)
+            .then(function(response) {
+                vm.posts.push(response);
+            })
     }
 
     function savePost() {

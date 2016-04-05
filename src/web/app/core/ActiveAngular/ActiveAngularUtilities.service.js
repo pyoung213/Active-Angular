@@ -3,9 +3,8 @@
         .module('activeAngular')
         .factory('ActiveAngularUtilities', ActiveAngularUtilities);
 
-    function ActiveAngularUtilities($q, activeAngularConstant, ActiveObject, ActiveArray) {
+    function ActiveAngularUtilities(activeAngularConstant, ActiveObject, ActiveArray) {
         var service = {
-            createPromises: createPromises,
             inheritActiveClass: inheritActiveClass,
             removeIdParam: removeIdParam,
             replaceUrlIdWithOptionsId: replaceUrlIdWithOptionsId,
@@ -14,21 +13,6 @@
         }
 
         return service;
-
-        function createPromises(data) {
-            var itemDefer = $q.defer();
-            Object.defineProperty(data, '$promise', {
-                enumerable: false,
-                value: itemDefer.promise
-            });
-
-            Object.defineProperty(data, '$deferPromise', {
-                enumerable: false,
-                value: itemDefer
-            });
-
-            return data;
-        }
 
         function inheritActiveClass(data, instance) {
             if (angular.isArray(data)) {

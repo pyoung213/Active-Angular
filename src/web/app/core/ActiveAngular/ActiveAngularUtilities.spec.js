@@ -37,15 +37,6 @@ describe('ActiveAngularUtilities', function() {
 
     describe('helpers', function() {
 
-        describe('createPromises', function() {
-            it('should add promise data to object', function() {
-                var newObject = ActiveAngularUtilities.createPromises(posts);
-
-                expect(newObject.$promise).to.exist;
-                expect(newObject.$deferPromise).to.exist;
-            });
-        });
-
         describe('inheritActiveClass', function() {
             it('array should inherit active classes', function() {
                 var newActive = ActiveAngularUtilities.inheritActiveClass(posts, Post);

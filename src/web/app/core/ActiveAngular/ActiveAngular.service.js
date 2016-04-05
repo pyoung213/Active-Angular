@@ -97,11 +97,11 @@
                     var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
+                        cachedItem.$deferPromise.resolve(cachedItem);
                         return cachedItem;
                     }
                     if (!cachedItem) {
                         cachedItem = isArray ? ActiveArray.decorateArray([], self) : new ActiveObject({}, self);
-                        cachedItem = ActiveAngularUtilities.createPromises(cachedItem);
                     }
 
                     //reference creation.
@@ -135,6 +135,11 @@
                                 data = _hydyrateData(data);
                             }
                             cachedItem = _.assign(cachedItem, data);
+                            _.forEach(cachedItem, function(item) {
+                                if (item.$deferPromise) {
+                                    item.$deferPromise.resolve(item);
+                                }
+                            });
                             cachedItem.$deferPromise.resolve(cachedItem);
                         });
                 }
@@ -179,7 +184,14 @@
                 }
 
                 function $create(options) {
-                    return this.$$http('POST', options);
+                    return self.$$http('POST', options)
+                        .then(function(response) {
+                            var data = response.data;
+
+                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
+                            data = _hydyrateData(data);
+                            return data;
+                        });
                 }
 
                 function $$http(method, options) {
