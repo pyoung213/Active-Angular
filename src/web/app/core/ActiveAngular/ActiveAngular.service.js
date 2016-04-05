@@ -15,18 +15,16 @@
             collectionKey = key;
         }
 
-        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant, ActiveAngularUtilities) {
+        this.$get = function($http, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant, ActiveAngularUtilities) {
             function ActiveAngular(url, options) {
                 options = options || {};
                 var self = this;
-                var defer = $q.defer();
 
                 self.url = url;
                 self.$cache = activeAngularCache.create(options);
                 self.$edges = options.edges;
                 self.$hydrate = options.hydrate;
                 self.$edges = options.edges;
-                self.$promise = defer.promise;
                 self.$get = $get;
                 self.$query = $query;
                 self.$edgeQuery = $edgeQuery;
@@ -40,21 +38,9 @@
                 self._hideMetadata = _hideMetadata;
                 self._hydyrateData = _hydyrateData;
                 self._logMismatchError = _logMismatchError;
+                self._createEdges = _createEdges;
 
-                self = createEdges(self);
-
-                function createEdges(object) {
-                    if (!object.$edges) {
-                        return object;
-                    }
-                    _.forEach(object.$edges.get, function(value, key) {
-                        object['$get' + _.capitalize(key)] = value.$edgeGet;
-                    });
-                    _.forEach(object.$edges.query, function(value, key) {
-                        object['$query' + _.capitalize(key)] = value.$edgeQuery;
-                    });
-                    return object;
-                }
+                self = _createEdges(self);
 
                 function $query(options, reference) {
                     reference = reference || '';
@@ -114,18 +100,8 @@
                         return cachedItem;
                     }
                     if (!cachedItem) {
-                        var itemDefer = $q.defer();
                         cachedItem = isArray ? ActiveArray.decorateArray([], self) : new ActiveObject({}, self);
-
-                        Object.defineProperty(cachedItem, '$promise', {
-                            enumerable: false,
-                            value: itemDefer.promise
-                        });
-
-                        Object.defineProperty(cachedItem, '$deferPromise', {
-                            enumerable: false,
-                            value: itemDefer
-                        });
+                        cachedItem = ActiveAngularUtilities.createPromises(cachedItem);
                     }
 
                     //reference creation.
@@ -234,6 +210,19 @@
                     options.url = baseUrl + '/' + options.url;
 
                     return $http(options);
+                }
+
+                function _createEdges(object) {
+                    if (!object.$edges) {
+                        return object;
+                    }
+                    _.forEach(object.$edges.get, function(value, key) {
+                        object['$get' + _.capitalize(key)] = value.$edgeGet;
+                    });
+                    _.forEach(object.$edges.query, function(value, key) {
+                        object['$query' + _.capitalize(key)] = value.$edgeQuery;
+                    });
+                    return object;
                 }
 
                 function _logMismatchError(response, isArray) {

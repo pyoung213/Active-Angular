@@ -76,8 +76,4 @@ function HomeController(posts, comments, $timeout) {
     vm.post = posts.$get('3');
     vm.postCache = posts.$cache;
     vm.commentCache = comments.$cache;
-
-    posts.$promise
-        .then(function() {});
-
 }

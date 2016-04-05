@@ -1,19 +1,16 @@
 describe('ActiveAngularUtilities', function() {
-    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, ActiveObject, $q, post, activePosts, activeAngularConstant, ActiveAngularUtilities,
+    var Post, sandbox, posts, ActiveAngular, ActiveObject, post, activeAngularConstant, ActiveAngularUtilities,
         url = "posts/:id";
 
     beforeEach(module('activeAngular'));
 
-    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_, _activeAngularConstant_, _ActiveAngularUtilities_) {
+    beforeEach(inject(function(_ActiveAngular_, _ActiveObject_, _activeAngularConstant_, _ActiveAngularUtilities_) {
         sandbox = sinon.sandbox.create();
         ActiveAngular = _ActiveAngular_;
-        ActiveArray = _ActiveArray_;
         ActiveObject = _ActiveObject_;
         Post = new ActiveAngular(url);
-        $httpBackend = _$httpBackend_;
         activeAngularConstant = _activeAngularConstant_;
         ActiveAngularUtilities = _ActiveAngularUtilities_;
-        $q = _$q_;
 
         posts = [{
             id: '1',
@@ -32,8 +29,6 @@ describe('ActiveAngularUtilities', function() {
             author: '4',
             message: "test"
         }];
-
-        activePosts = ActiveArray.decorateArray(posts, Post);
     }));
 
     afterEach(function() {
@@ -41,6 +36,16 @@ describe('ActiveAngularUtilities', function() {
     });
 
     describe('helpers', function() {
+
+        describe('createPromises', function() {
+            it('should add promise data to object', function() {
+                var newObject = ActiveAngularUtilities.createPromises(posts);
+
+                expect(newObject.$promise).to.exist;
+                expect(newObject.$deferPromise).to.exist;
+            });
+        });
+
         describe('inheritActiveClass', function() {
             it('array should inherit active classes', function() {
                 var newActive = ActiveAngularUtilities.inheritActiveClass(posts, Post);
@@ -48,6 +53,7 @@ describe('ActiveAngularUtilities', function() {
                 expect(newActive.$remove).to.exist;
                 expect(newActive.$create).to.exist;
                 expect(newActive.$get).to.exist;
+                expect(newActive[0]).to.be.instanceOf(ActiveObject);
             });
 
             it('object should inherit active classes', function() {

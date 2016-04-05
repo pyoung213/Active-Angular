@@ -50,10 +50,6 @@ describe('ActiveAngular', function() {
         expect(Post).to.be.instanceof(ActiveAngular);
     });
 
-    it('Post should inherit promise', function() {
-        expect(Post.$promise.then).to.exist;
-    });
-
     describe('$query', function() {
         it('should query with params', function() {
             var getMockData = {
