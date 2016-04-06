@@ -282,11 +282,11 @@ describe('ActiveAngular', function() {
         });
 
         it('should $get unique reference from cache with id', function() {
-            var reference = 'someUniqueRefrence';
+            var reference = 'someUniqueReference';
             $httpBackend.expectGET('/posts/' + userId).respond(200, post);
             Post.$get(userId, reference);
             $httpBackend.flush();
-            expect(Post.$cache.cached[userId + reference]).to.have.all.keys(post);
+            expect(Post.$cache.cached[userId + _.toLower(reference)]).to.have.all.keys(post);
         });
 
 

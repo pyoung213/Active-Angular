@@ -29,6 +29,7 @@
                 self.$query = $query;
                 self.$edgeQuery = $edgeQuery;
                 self.$edgeGet = $edgeGet;
+                self.$edgeCreate = $edgeCreate;
                 self.$save = $save;
                 self.$remove = $remove;
                 self.$create = $create;
@@ -50,17 +51,27 @@
                     return _get.call(this, options, reference, true);
                 }
 
-                function $edgeGet(options) {
+                function $edgeGet(options, reference) {
+                    if (!reference) {
+                        reference = '';
+                    }
                     options = ActiveAngularUtilities.stringToObject(options);
                     var url = this.url;
                     url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
                     delete options.id
 
                     options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
+                    var params = _.omit(options, 'url');
+                    if (params) {
+                        reference = $httpParamSerializerJQLike(params) + reference
+                    }
                     return _get.call(this, options, null, false);
                 }
 
-                function $edgeQuery(options) {
+                function $edgeQuery(options, reference) {
+                    if (!reference) {
+                        reference = '';
+                    }
                     options = ActiveAngularUtilities.stringToObject(options);
                     var url = this.url;
 
@@ -68,7 +79,11 @@
                     delete options.id
 
                     options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
-                    return _get.call(this, options, null, true);
+                    var params = _.omit(options, 'url');
+                    if (params) {
+                        reference = $httpParamSerializerJQLike(params) + reference
+                    }
+                    return _get.call(this, options, reference, true);
                 }
 
                 function $get(options, reference) {
@@ -81,19 +96,11 @@
                     options = ActiveAngularUtilities.stringToObject(options);
                     options = ActiveAngularUtilities.undefinedToObject(options);
 
+                    //create key
+                    var key = _valueOrEmpty(options.id) + _valueOrEmpty(options.url) + _valueOrEmpty(reference);
+                    key = _.toLower(key);
+
                     //caching check
-                    var key = '';
-                    if (options.id) {
-                        key += options.id
-                    }
-
-                    if (options.url) {
-                        key += options.url;
-                    }
-
-                    if (reference) {
-                        key += reference
-                    }
                     var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
@@ -134,7 +141,8 @@
                             } else {
                                 data = _hydyrateData(data);
                             }
-                            cachedItem = _.assign(cachedItem, data);
+                            _.assign(cachedItem, _.omit(data, '$promise', '$deferPromise'));
+
                             _.forEach(cachedItem, function(item) {
                                 if (item.$deferPromise) {
                                     item.$deferPromise.resolve(item);
@@ -194,6 +202,24 @@
                         });
                 }
 
+                function $edgeCreate(options) {
+                    options = ActiveAngularUtilities.stringToObject(options);
+                    var url = this.url;
+
+                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
+                    delete options.id
+
+                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
+                    return self.$$http('POST', options)
+                        .then(function(response) {
+                            var data = response.data;
+
+                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
+                            data = _hydyrateData(data);
+                            return data;
+                        });
+                }
+
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
@@ -230,9 +256,11 @@
                     }
                     _.forEach(object.$edges.get, function(value, key) {
                         object['$get' + _.capitalize(key)] = value.$edgeGet;
+                        object['$create' + _.capitalize(key)] = value.$edgeCreate;
                     });
                     _.forEach(object.$edges.query, function(value, key) {
                         object['$query' + _.capitalize(key)] = value.$edgeQuery;
+                        object['$create' + _.capitalize(key)] = value.$edgeCreate;
                     });
                     return object;
                 }
@@ -282,6 +310,10 @@
                         }
                     });
                     return ref;
+                }
+
+                function _valueOrEmpty(string) {
+                    return string || "";
                 }
             }
 
