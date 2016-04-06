@@ -31,6 +31,7 @@
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
+                self._collectionKey = options.collectionKey || collectionKey;
                 self._edges = options.edges;
                 self._get = _get;
                 self._hydrateCollection = _hydrateCollection;
@@ -97,7 +98,7 @@
                             var isDataArray = angular.isArray(data);
 
                             if (isDataArray != isArray) {
-                                if (!data[collectionKey]) {
+                                if (!data[self._collectionKey]) {
                                     return _logMismatchError(response, isDataArray);
                                 }
                                 cachedItem = _hideMetadata(cachedItem, data);
@@ -214,7 +215,7 @@
                         $log.error(response.config.url + ' Expected an Object and got an Array from server.');
                         return;
                     }
-                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + collectionKey + ' not set.');
+                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + self._collectionKey + ' not set.');
                 }
 
                 function _hydyrateData(data) {
@@ -236,7 +237,7 @@
                 function _hydrateCollection(collection) {
                     var data = {};
 
-                    _.forEach(collection[collectionKey], function(value, key) {
+                    _.forEach(collection[self._collectionKey], function(value, key) {
                         data[key] = value
                     });
                     return data;
@@ -244,7 +245,7 @@
 
                 function _hideMetadata(ref, data) {
                     _.forEach(data, function(value, key) {
-                        if (key !== collectionKey) {
+                        if (key !== self._collectionKey) {
                             Object.defineProperty(ref, key, {
                                 enumerable: false,
                                 value: value

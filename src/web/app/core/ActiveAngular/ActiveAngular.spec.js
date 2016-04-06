@@ -207,6 +207,20 @@ describe('ActiveAngular', function() {
 
             expect(post.comments).to.exist;
         });
+        it('should create an edge and set collection key', function() {
+            var options = {
+                collectionKey: "posts"
+            }
+            var Posts = new ActiveAngular('posts/:id', options);
+            var postsResponse = {
+                posts: posts
+            }
+            $httpBackend.expectGET('/posts').respond(200, postsResponse);
+            var somePosts = Posts.$query();
+            $httpBackend.flush();
+
+            expect(somePosts[0].id).to.be.equal(posts[0].id);
+        });
     });
 
     describe('$$http', function() {
