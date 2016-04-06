@@ -223,6 +223,27 @@ describe('ActiveAngular', function() {
         });
     });
 
+    describe('$format', function() {
+        it('should format response', function() {
+            var options = {
+                formatResponse: formatResponse
+            }
+
+            function formatResponse(data) {
+                _.forEach(data, function(item) {
+                    item.name = "formated name " + item.id;
+                });
+                return data;
+            }
+            var Posts = new ActiveAngular('posts/:id', options);
+            $httpBackend.expectGET('/posts').respond(200, posts);
+            var somePosts = Posts.$query();
+            $httpBackend.flush();
+
+            expect(somePosts[0].name).to.be.equal("formated name 1");
+        });
+    });
+
     describe('$$http', function() {
         it('should strip double slashes and trailing slashes', function() {
             var Comments = new ActiveAngular('posts/:id/comments/');

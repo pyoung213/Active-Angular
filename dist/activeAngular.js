@@ -26,44 +26,30 @@ angular
             collectionKey = key;
         }
 
-        this.$get = function($http, $q, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant) {
+        this.$get = function($http, $log, $httpParamSerializerJQLike, activeAngularCache, ActiveArray, ActiveObject, activeAngularConstant, ActiveAngularUtilities) {
             function ActiveAngular(url, options) {
                 options = options || {};
                 var self = this;
-                var defer = $q.defer();
 
                 self.url = url;
+                self.edgeUrl = '';
                 self.$cache = activeAngularCache.create(options);
-                self.$edges = options.edges;
                 self.$hydrate = options.hydrate;
-                self.$edges = options.edges;
-                self.$promise = defer.promise;
+                self.$edge = $edge;
                 self.$get = $get;
                 self.$query = $query;
-                self.$edgeQuery = $edgeQuery;
-                self.$edgeGet = $edgeGet;
                 self.$save = $save;
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
+                self._formatResponse = options.formatResponse;
+                self._collectionKey = options.collectionKey || collectionKey;
+                self._edges = options.edges;
                 self._get = _get;
-                self._stringToObject = _stringToObject;
-                self._undefinedToObject = _undefinedToObject;
-
-                self = createEdges(self);
-
-                function createEdges(object) {
-                    if (!object.$edges) {
-                        return object;
-                    }
-                    _.forEach(object.$edges.get, function(value, key) {
-                        object['$get' + _.capitalize(key)] = value.$edgeGet;
-                    });
-                    _.forEach(object.$edges.query, function(value, key) {
-                        object['$query' + _.capitalize(key)] = value.$edgeQuery;
-                    });
-                    return object;
-                }
+                self._hydrateCollection = _hydrateCollection;
+                self._hideMetadata = _hideMetadata;
+                self._hydyrateData = _hydyrateData;
+                self._logMismatchError = _logMismatchError;
 
                 function $query(options, reference) {
                     reference = reference || '';
@@ -73,25 +59,17 @@ angular
                     return _get.call(this, options, reference, true);
                 }
 
-                function $edgeGet(options) {
-                    options = _stringToObject(options);
-                    var url = this.url;
-                    url = _replaceUrlIdWithOptionsId(url, options.id)
-                    delete options.id
-
-                    options.url = url + "/" + _removeIdParam(self.url);
-                    return _get.call(this, options, null, false);
-                }
-
-                function $edgeQuery(options) {
-                    options = _stringToObject(options);
-                    var url = this.url;
-
-                    url = _replaceUrlIdWithOptionsId(url, options.id)
-                    delete options.id
-
-                    options.url = url + "/" + _removeIdParam(self.url);
-                    return _get.call(this, options, null, true);
+                function $edge(key, id) {
+                    var item = this;
+                    if (this instanceof(ActiveObject)) {
+                        id = this.id;
+                        item = self;
+                    }
+                    var edge = item._edges[key];
+                    var model = edge.model;
+                    var url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(item.url, id);
+                    model.edgeUrl = url + "/" + ActiveAngularUtilities.removeIdParam(model.url);
+                    return model;
                 }
 
                 function $get(options, reference) {
@@ -101,40 +79,22 @@ angular
                 function _get(options, reference, isArray) {
                     var self = this;
                     //cleanup options
-                    options = _stringToObject(options);
-                    options = _undefinedToObject(options);
+                    options = ActiveAngularUtilities.stringToObject(options);
+                    options = ActiveAngularUtilities.undefinedToObject(options);
+
+                    //create key
+                    var key = _valueOrEmpty(self.edgeUrl || options.id) + _valueOrEmpty(options.url) + _valueOrEmpty(reference);
+                    key = _.toLower(key);
 
                     //caching check
-                    var key = '';
-                    if (options.id) {
-                        key += options.id
-                    }
-
-                    if (options.url) {
-                        key += options.url;
-                    }
-
-                    if (reference) {
-                        key += reference
-                    }
                     var cachedItem = self.$cache.get(key);
 
                     if (cachedItem && !cachedItem.$isExpired) {
+                        cachedItem.$deferPromise.resolve(cachedItem);
                         return cachedItem;
                     }
                     if (!cachedItem) {
-                        var itemDefer = $q.defer();
                         cachedItem = isArray ? ActiveArray.decorateArray([], self) : new ActiveObject({}, self);
-
-                        Object.defineProperty(cachedItem, '$promise', {
-                            enumerable: false,
-                            value: itemDefer.promise
-                        });
-
-                        Object.defineProperty(cachedItem, '$deferPromise', {
-                            enumerable: false,
-                            value: itemDefer
-                        });
                     }
 
                     //reference creation.
@@ -147,90 +107,38 @@ angular
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
+                            if (self._formatResponse) {
+                                data = self._formatResponse(data);
+                            }
                             var isDataArray = angular.isArray(data);
 
                             if (isDataArray != isArray) {
-                                if (!data[collectionKey]) {
-                                    return logMismatchError(response, isDataArray);
+                                if (!data[self._collectionKey]) {
+                                    return _logMismatchError(response, isDataArray);
                                 }
-                                cachedItem = _enumMeta(cachedItem, data);
+                                cachedItem = _hideMetadata(cachedItem, data);
                                 data = _hydrateCollection(data);
                             }
 
-                            data = inheritActiveClass(data);
+                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
 
                             if (isDataArray) {
                                 _.forEach(data, function(value, key) {
-                                    data[key] = hydyrateData(value);
+                                    data[key] = _hydyrateData(value);
                                 });
                                 data = self.$cache.setArray(data);
                             } else {
-                                data = hydyrateData(data);
+                                data = _hydyrateData(data);
                             }
-                            cachedItem = _.assign(cachedItem, data);
+                            _.assign(cachedItem, _.omit(data, '$promise', '$deferPromise'));
+
+                            _.forEach(cachedItem, function(item) {
+                                if (item.$deferPromise) {
+                                    item.$deferPromise.resolve(item);
+                                }
+                            });
                             cachedItem.$deferPromise.resolve(cachedItem);
                         });
-                }
-
-                function _enumMeta(ref, data) {
-                    _.forEach(data, function(value, key) {
-                        if (key !== collectionKey) {
-                            Object.defineProperty(ref, key, {
-                                enumerable: false,
-                                value: value
-                            });
-                        }
-                    });
-                    return ref;
-                }
-
-                function _hydrateCollection(collection) {
-                    var data = {};
-
-                    _.forEach(collection.items, function(value, key) {
-                        data[key] = value
-                    });
-                    return data;
-                }
-
-                function hydyrateData(data) {
-                    if (!self.$hydrate) {
-                        return data;
-                    }
-                    _.forEach(self.$hydrate, function(value, key) {
-                        if (self.$edges && self.$edges.query && self.$edges.query[key]) {
-                            data[key] = self.$edges.query[key].$edgeQuery.call(self, data[key] || data.id);
-                            return;
-                        }
-                        if (self.$edges && self.$edges.get && self.$edges.get[key]) {
-                            data[key] = self.$edges.query[key].$edgeGet.call(self, data[key] || data.id);
-                            return;
-                        }
-                        data[key] = value.$get(data[key]);
-                    });
-                    return data;
-                }
-
-                function inheritActiveClass(data) {
-                    if (angular.isArray(data)) {
-                        data = ActiveArray.decorateArray(data, self);
-
-                        _.forEach(data, function(value, key) {
-                            data[key] = new ActiveObject(value, self);
-                        });
-
-                        return data;
-                    }
-
-                    return new ActiveObject(data, self);
-                }
-
-                function logMismatchError(response, isArray) {
-                    if (isArray) {
-                        $log.error(response.config.url + ' Expected an Object and got an Array from server.');
-                        return;
-                    }
-                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + collectionKey + ' not set.');
                 }
 
                 function $save(options) {
@@ -257,8 +165,8 @@ angular
                 function $remove(options) {
                     var item = this;
 
-                    options = _stringToObject(options);
-                    options = _undefinedToObject(options, item);
+                    options = ActiveAngularUtilities.stringToObject(options);
+                    options = ActiveAngularUtilities.undefinedToObject(options, item);
 
                     return self.$$http('DELETE', options)
                         .then(function(response) {
@@ -273,13 +181,24 @@ angular
                 }
 
                 function $create(options) {
-                    return this.$$http('POST', options);
+                    return self.$$http('POST', options)
+                        .then(function(response) {
+                            var data = response.data;
+
+                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
+                            data = _hydyrateData(data);
+                            return data;
+                        });
                 }
 
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
                     var edgeUrl = options.url;
+                    if (self.edgeUrl) {
+                        edgeUrl = self.edgeUrl;
+                        self.edgeUrl = "";
+                    }
                     options = {
                         method: method,
                         url: edgeUrl || self.url,
@@ -289,11 +208,11 @@ angular
 
                     //if no id, strip instances of :id
                     if (!options.id || options.id === activeAngularConstant.NO_ID) {
-                        options.url = _removeIdParam(options.url);
+                        options.url = ActiveAngularUtilities.removeIdParam(options.url);
                         delete options.id;
                     }
 
-                    options.url = _replaceUrlIdWithOptionsId(options.url, options.id);
+                    options.url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(options.url, options.id);
                     delete options.id;
 
                     if (options.method === 'GET' && Object.keys(options.data).length) {
@@ -306,42 +225,57 @@ angular
                     return $http(options);
                 }
 
-                function _replaceUrlIdWithOptionsId(url, id) {
-                    if (url.indexOf(':id') > -1 && id) {
-                        url = url.replace(':id', id);
+                function _logMismatchError(response, isArray) {
+                    if (isArray) {
+                        $log.error(response.config.url + ' Expected an Object and got an Array from server.');
+                        return;
                     }
-                    return url;
+                    $log.error(response.config.url + ' Expected an Array and got an Object from server with collection key ' + self._collectionKey + ' not set.');
                 }
 
-                function _removeIdParam(url) {
-                    url = url.replace(':id', '');
-                    url = url.replace('//', '/');
-                    url = _.trimEnd(url, '/');
-                    return url;
+                function _hydyrateData(data) {
+                    if (!self.$hydrate) {
+                        return data;
+                    }
+                    _.forEach(self.$hydrate, function(value, key) {
+                        var edges = self._edges;
+                        if (edges && edges[key]) {
+                            var model = edges[key].model;
+                            data[key] = model.$edge.call(self, key, data.id).$query();
+                            return
+                        }
+                        data[key] = value.$get(data[key]);
+                    });
+                    return data;
                 }
 
-                function _stringToObject(options) {
-                    if (angular.isString(options)) {
-                        var id = options;
-                        options = {};
-                        options.id = id;
-                    }
-                    return options;
+                function _hydrateCollection(collection) {
+                    var data = {};
+
+                    _.forEach(collection[self._collectionKey], function(value, key) {
+                        data[key] = value
+                    });
+                    return data;
                 }
 
-                function _undefinedToObject(options, item) {
-                    if (angular.isUndefined(options)) {
-                        options = {};
-                        var key = item ? item.id : activeAngularConstant.NO_ID;
-                        options.id = key;
-                    }
+                function _hideMetadata(ref, data) {
+                    _.forEach(data, function(value, key) {
+                        if (key !== self._collectionKey) {
+                            Object.defineProperty(ref, key, {
+                                enumerable: false,
+                                value: value
+                            });
+                        }
+                    });
+                    return ref;
+                }
 
-                    return options;
+                function _valueOrEmpty(string) {
+                    return string || "";
                 }
             }
 
             return ActiveAngular;
-
         }
     }
 })();
@@ -484,7 +418,72 @@ angular
 (function() {
     angular
         .module('activeAngular')
-        .factory('ActiveArray', function() {
+        .factory('ActiveAngularUtilities', ActiveAngularUtilities);
+
+    function ActiveAngularUtilities(activeAngularConstant, ActiveObject, ActiveArray) {
+        var service = {
+            inheritActiveClass: inheritActiveClass,
+            removeIdParam: removeIdParam,
+            replaceUrlIdWithOptionsId: replaceUrlIdWithOptionsId,
+            stringToObject: stringToObject,
+            undefinedToObject: undefinedToObject
+        }
+
+        return service;
+
+        function inheritActiveClass(data, instance) {
+            if (angular.isArray(data)) {
+                data = ActiveArray.decorateArray(data, instance);
+
+                _.forEach(data, function(value, key) {
+                    data[key] = new ActiveObject(value, instance);
+                });
+
+                return data;
+            }
+
+            return new ActiveObject(data, instance);
+        }
+
+        function removeIdParam(url) {
+            url = url.replace(':id', '');
+            url = url.replace('//', '/');
+            url = _.trimEnd(url, '/');
+            return url;
+        }
+
+        function replaceUrlIdWithOptionsId(url, id) {
+            if (url.indexOf(':id') > -1 && id) {
+                url = url.replace(':id', id);
+            }
+            return url;
+        }
+
+        function stringToObject(options) {
+            if (angular.isString(options)) {
+                var id = options;
+                options = {};
+                options.id = id;
+            }
+            return options;
+        }
+
+        function undefinedToObject(options, item) {
+            if (angular.isUndefined(options)) {
+                options = {};
+                var key = item ? item.id : activeAngularConstant.NO_ID;
+                options.id = key;
+            }
+
+            return options;
+        }
+    }
+})();
+
+(function() {
+    angular
+        .module('activeAngular')
+        .factory('ActiveArray', function($q) {
             var service = {
                 decorateArray: decorateArray
             }
@@ -492,6 +491,8 @@ angular
             return service;
 
             function decorateArray(data, instance) {
+                var defered = $q.defer();
+
                 data['$remove'] = function(options) {
                     instance.$remove(options);
                 };
@@ -502,84 +503,21 @@ angular
                     instance.$get(options, reference)
                 };
 
+                data['$promise'] = defered.promise;
+                data['$deferPromise'] = defered;
+
                 return data;
             }
-
-            // function ActiveArray(data, instance) {
-            //     return data;
-
-            // Object.defineProperty(self, '$remove', {
-            //     enumerable: false,
-            //     value: function(options) {
-            //         instance.$remove(options)
-            //     }
-            // });
-            //
-            // Object.defineProperty(self, '$create', {
-            //     enumerable: false,
-            //     value: function(options) {
-            //         instance.$create(options)
-            //     }
-            // });
-            //
-            // Object.defineProperty(self, '$get', {
-            //     enumerable: false,
-            //     value: function(options, reference) {
-            //         instance.$get(options, reference)
-            //     }
-            // });
-            //
-            // Object.defineProperty(self, '$isArray', {
-            //     enumerable: false,
-            //     value: true
-            // });
-            //
-            // Object.defineProperty(self, 'push', {
-            //     enumerable: false,
-            //     value: function(item) {
-            //         var collection = this;
-            //         var length = Object.keys(collection).length;
-            //
-            //         if (item.$isArray) {
-            //             _.forOwn(item, function(value) {
-            //                 collection[length] = value;
-            //                 length++;
-            //             });
-            //             return collection;
-            //         }
-            //
-            //         return collection[length] = item;
-            //     }
-            // });
-            //
-            // Object.defineProperty(self, 'unshift', {
-            //     enumerable: false,
-            //     value: function(item) {
-            //         var collection = this;
-            //         var length = Object.keys(item).length;
-            //
-            //         _.forEachRight(collection, function(value, key) {
-            //             collection[length + key] = value;
-            //         });
-            //
-            //         _.forEach(item, function(value, key) {
-            //             collection[key] = value;
-            //         });
-            //         return collection;
-            //     }
-            // });
-            // }
-
-            // return ActiveArray;
         });
 })();
 
 (function() {
     angular
         .module('activeAngular')
-        .factory('ActiveObject', function() {
+        .factory('ActiveObject', function($q) {
             function ActiveObject(object, instance) {
                 var self = this;
+                var defered = $q.defer();
 
                 _.forOwn(object, function(value, key) {
                     self[key] = value;
@@ -593,6 +531,21 @@ angular
                 Object.defineProperty(self, '$save', {
                     enumerable: false,
                     value: instance.$save
+                });
+
+                Object.defineProperty(self, '$edge', {
+                    enumerable: false,
+                    value: instance.$edge
+                });
+
+                Object.defineProperty(self, '$promise', {
+                    enumerable: false,
+                    value: defered.promise
+                });
+
+                Object.defineProperty(self, '$deferPromise', {
+                    enumerable: false,
+                    value: defered
                 });
             }
 

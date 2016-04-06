@@ -31,6 +31,7 @@
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
+                self._formatResponse = options.formatResponse;
                 self._collectionKey = options.collectionKey || collectionKey;
                 self._edges = options.edges;
                 self._get = _get;
@@ -95,6 +96,9 @@
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
+                            if (self._formatResponse) {
+                                data = self._formatResponse(data);
+                            }
                             var isDataArray = angular.isArray(data);
 
                             if (isDataArray != isArray) {
