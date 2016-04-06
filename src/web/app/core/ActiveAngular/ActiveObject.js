@@ -20,6 +20,11 @@
                     value: instance.$save
                 });
 
+                Object.defineProperty(self, '$edge', {
+                    enumerable: false,
+                    value: instance.$edge
+                });
+
                 Object.defineProperty(self, '$promise', {
                     enumerable: false,
                     value: defered.promise

@@ -21,27 +21,22 @@
                 var self = this;
 
                 self.url = url;
+                self.edgeUrl = '';
                 self.$cache = activeAngularCache.create(options);
-                self.$edges = options.edges;
                 self.$hydrate = options.hydrate;
-                self.$edges = options.edges;
+                self.$edge = $edge;
                 self.$get = $get;
                 self.$query = $query;
-                self.$edgeQuery = $edgeQuery;
-                self.$edgeGet = $edgeGet;
-                self.$edgeCreate = $edgeCreate;
                 self.$save = $save;
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
+                self._edges = options.edges;
                 self._get = _get;
                 self._hydrateCollection = _hydrateCollection;
                 self._hideMetadata = _hideMetadata;
                 self._hydyrateData = _hydyrateData;
                 self._logMismatchError = _logMismatchError;
-                self._createEdges = _createEdges;
-
-                self = _createEdges(self);
 
                 function $query(options, reference) {
                     reference = reference || '';
@@ -51,39 +46,17 @@
                     return _get.call(this, options, reference, true);
                 }
 
-                function $edgeGet(options, reference) {
-                    if (!reference) {
-                        reference = '';
+                function $edge(key, id) {
+                    var item = this;
+                    if (this instanceof(ActiveObject)) {
+                        id = this.id;
+                        item = self;
                     }
-                    options = ActiveAngularUtilities.stringToObject(options);
-                    var url = this.url;
-                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
-                    delete options.id
-
-                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
-                    var params = _.omit(options, 'url');
-                    if (params) {
-                        reference = $httpParamSerializerJQLike(params) + reference
-                    }
-                    return _get.call(this, options, null, false);
-                }
-
-                function $edgeQuery(options, reference) {
-                    if (!reference) {
-                        reference = '';
-                    }
-                    options = ActiveAngularUtilities.stringToObject(options);
-                    var url = this.url;
-
-                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
-                    delete options.id
-
-                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
-                    var params = _.omit(options, 'url');
-                    if (params) {
-                        reference = $httpParamSerializerJQLike(params) + reference
-                    }
-                    return _get.call(this, options, reference, true);
+                    var edge = item._edges[key];
+                    var model = edge.model;
+                    var url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(item.url, id);
+                    model.edgeUrl = url + "/" + ActiveAngularUtilities.removeIdParam(model.url);
+                    return model;
                 }
 
                 function $get(options, reference) {
@@ -97,7 +70,7 @@
                     options = ActiveAngularUtilities.undefinedToObject(options);
 
                     //create key
-                    var key = _valueOrEmpty(options.id) + _valueOrEmpty(options.url) + _valueOrEmpty(reference);
+                    var key = _valueOrEmpty(self.edgeUrl || options.id) + _valueOrEmpty(options.url) + _valueOrEmpty(reference);
                     key = _.toLower(key);
 
                     //caching check
@@ -202,28 +175,14 @@
                         });
                 }
 
-                function $edgeCreate(options) {
-                    options = ActiveAngularUtilities.stringToObject(options);
-                    var url = this.url;
-
-                    url = ActiveAngularUtilities.replaceUrlIdWithOptionsId(url, options.id)
-                    delete options.id
-
-                    options.url = url + "/" + ActiveAngularUtilities.removeIdParam(self.url);
-                    return self.$$http('POST', options)
-                        .then(function(response) {
-                            var data = response.data;
-
-                            data = ActiveAngularUtilities.inheritActiveClass(data, self);
-                            data = _hydyrateData(data);
-                            return data;
-                        });
-                }
-
                 function $$http(method, options) {
                     var self = this;
                     var id = options.id;
                     var edgeUrl = options.url;
+                    if (self.edgeUrl) {
+                        edgeUrl = self.edgeUrl;
+                        self.edgeUrl = "";
+                    }
                     options = {
                         method: method,
                         url: edgeUrl || self.url,
@@ -250,21 +209,6 @@
                     return $http(options);
                 }
 
-                function _createEdges(object) {
-                    if (!object.$edges) {
-                        return object;
-                    }
-                    _.forEach(object.$edges.get, function(value, key) {
-                        object['$get' + _.capitalize(key)] = value.$edgeGet;
-                        object['$create' + _.capitalize(key)] = value.$edgeCreate;
-                    });
-                    _.forEach(object.$edges.query, function(value, key) {
-                        object['$query' + _.capitalize(key)] = value.$edgeQuery;
-                        object['$create' + _.capitalize(key)] = value.$edgeCreate;
-                    });
-                    return object;
-                }
-
                 function _logMismatchError(response, isArray) {
                     if (isArray) {
                         $log.error(response.config.url + ' Expected an Object and got an Array from server.');
@@ -278,13 +222,11 @@
                         return data;
                     }
                     _.forEach(self.$hydrate, function(value, key) {
-                        if (self.$edges && self.$edges.query && self.$edges.query[key]) {
-                            data[key] = self.$edges.query[key].$edgeQuery.call(self, data[key] || data.id);
-                            return;
-                        }
-                        if (self.$edges && self.$edges.get && self.$edges.get[key]) {
-                            data[key] = self.$edges.query[key].$edgeGet.call(self, data[key] || data.id);
-                            return;
+                        var edges = self._edges;
+                        if (edges && edges[key]) {
+                            var model = edges[key].model;
+                            data[key] = model.$edge.call(self, key, data.id).$query();
+                            return
                         }
                         data[key] = value.$get(data[key]);
                     });

@@ -177,14 +177,14 @@ describe('ActiveAngular', function() {
             var Comments = new ActiveAngular('comments/:id');
             var options = {
                 edges: {
-                    query: {
-                        comments: Comments
+                    comments: {
+                        model: Comments
                     }
                 }
             }
             var Posts = new ActiveAngular('posts/:id', options);
             $httpBackend.expectGET('/posts/2/comments').respond(200, posts);
-            Posts.$queryComments('2');
+            Posts.$edge('comments', '2').$query();
             $httpBackend.flush();
         });
         it('should create an edge and hydrate it', function() {
@@ -194,8 +194,8 @@ describe('ActiveAngular', function() {
                     comments: Comments
                 },
                 edges: {
-                    query: {
-                        comments: Comments
+                    comments: {
+                        model: Comments
                     }
                 }
             }
