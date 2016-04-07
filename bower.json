@@ -1,5 +1,6 @@
 {
     "name": "active-angular",
+    "version": "0.0.1",
     "homepage": "https://github.com/pyoung213/Active-Angular",
     "authors": [
         "Patrick Young patrickdavidyoung@gmail.com"
@@ -7,6 +8,7 @@
     "description": "http wrapper with reference caching",
     "main": "dist/active-angular.js",
     "moduleType": [],
+    "ignore": [],
     "keywords": [
         "active",
         "angular",
