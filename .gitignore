@@ -1,0 +1,16 @@
+# Dependency repositories
+bower_components
+node_modules
+
+# Runtime
+npm-debug.log
+
+# The generated copy of the index file.
+src/web/index.html
+
+src/web/app/core/environment.config.js
+
+# Build-generated files
+build
+.tmp
+report

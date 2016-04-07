@@ -1,0 +1,16 @@
+{
+    "env": {
+        "browser": true,
+        "node": true,
+        "mocha": true
+    },
+    "globals": {
+        "angular": false,
+        "jwt_decode": false,
+        "_": false,
+        "expect": true,
+        "sinon": true,
+        "moment": true,
+        "inject": false
+    }
+}

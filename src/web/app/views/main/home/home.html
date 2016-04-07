@@ -1,0 +1,90 @@
+<div class="home-container">
+    <h2>Content!</h2>
+    <div layout="row">
+        <div layout="column" flex>
+            <md-card ng-repeat="post in vm.posts">
+                <md-card-header>
+                    <md-card-avatar>
+                        <img class="md-user-avatar" ng-src="{{post.author.imageUrl}}"/>
+                    </md-card-avatar>
+                    <md-card-header-text>
+                        <span class="md-title">{{post.author.name}}</span>
+                        <span class="md-subhead">{{post.createdAt | date:'medium'}}</span>
+                    </md-card-header-text>
+                </md-card-header>
+                <md-card-content ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
+                    <p>{{post.message}}</p>
+                </md-card-content>
+                <div style="background-color:#eee;border-top:1px solid #ccc;" ng-repeat="comment in post.comments">
+                    <md-card-header>
+                        <md-card-avatar>
+                            <img class="md-user-avatar" ng-src="{{comment.author.imageUrl}}"/>
+                        </md-card-avatar>
+                        <md-card-header-text>
+                            <span class="md-title">{{comment.author.name}}</span>
+                            <span class="md-subhead">{{comment.createdAt | date:'medium'}}</span>
+                        </md-card-header-text>
+                    </md-card-header>
+                    <md-card-content>
+                        <p>{{comment.message}}</p>
+                        <div layout="row">
+                            <md-input-container class="md-block" flex="30">
+                                <label>Change Comment</label>
+                                <input ng-model="comment.newComment">
+                            </md-input-container>
+                            <md-button class="md-primary" ng-click="vm.saveComment(comment)">Save</md-button>
+                        </div>
+
+                    </md-card-content>
+                </div>
+            </md-card>
+            <div layout-align="center center">
+                <md-button class="md-primary md-raised" ng-click="vm.getNextPage()">Next Page</md-button>
+            </div>
+        </div>
+        <div layout="column" flex>
+            <h1>Normal</h1>
+            <md-input-container>
+                <label>Search</label>
+                <input ng-model="vm.filterQuery" ng-change="vm.filter()" ng-model-options="{ debounce: 200 }" />
+            </md-input-container>
+            <div ng-repeat="post in vm.filteredPosts || vm.otherPosts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
+                <div>{{post.id}}</div>
+                <div>{{post.message}}</div>
+            </div>
+        </div>
+    </div>
+
+    <h4>{{vm.posts.timestamp | date:'short'}}</h4>
+    <h3>Single Post</h3>
+    <div ng-click="vm.editPostMessage(vm.post)">
+        <span ng-bind="vm.post.message"></span>
+    </div>
+    <div layout="row">
+        <md-input-container class="md-block" flex="30">
+            <label>First name</label>
+            <input ng-model="vm.message">
+        </md-input-container>
+        <md-button class="md-primary" ng-click="vm.savePost()">Save</md-button>
+        <md-input-container class="md-block" flex="30">
+            <label>New Message</label>
+            <input ng-model="vm.createMessage">
+        </md-input-container>
+        <md-button class="md-primary" ng-click="vm.createPost(vm.createMessage)">Create</md-button>
+    </div>
+
+    <div layout="row">
+        <div flex>
+            <h3>Post Cache</h3>
+            <pre>
+                {{vm.postCache | json}}
+            </pre>
+        </div>
+        <div flex>
+            <h3>Comments Cache</h3>
+            <pre>
+                {{vm.commentCache | json}}
+            </pre>
+        </div>
+    </div>
+</div>
