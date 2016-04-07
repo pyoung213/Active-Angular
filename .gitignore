@@ -3,7 +3,6 @@ bower_components
 node_modules
 
 # Runtime
-newrelic_agent.log
 npm-debug.log
 
 # The generated copy of the index file.
