@@ -7,11 +7,38 @@
     "description": "http wrapper with reference caching",
     "main": "dist/activeAngular.js",
     "moduleType": [],
-    "ignore": [],
+    "ignore": [
+        ".*",
+        "node_modules",
+        "bower_components",
+        "src",
+        "README.md",
+        "e2e",
+        "animationList.txt",
+        "gulpfile.js",
+        "bower.json",
+        ".gitignore",
+        "package.json",
+        "gulp"
+    ],
     "keywords": [
         "active",
         "angular",
         "http"
     ],
-    "license": "MIT"
+    "license": "MIT",
+    "devDependencies": {
+        "angular-mocks": "~1.5.3",
+        "sinon": "http://sinonjs.org/releases/sinon-1.12.1.js",
+        "bardjs": "^0.1.4",
+        "moment": "~2.12.0",
+        "angular-ui-router": "~0.2.13",
+        "angular-animate": "~1.5.3",
+        "angular-material": "~1.0.6",
+        "angular-sanitize": "~1.5.3"
+    },
+    "dependencies": {
+        "lodash": "~4.6.1",
+        "angular": "~1.5.3"
+    }
 }

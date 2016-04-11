@@ -2,7 +2,7 @@ angular
     .module('app.web')
     .controller('HomeController', HomeController);
 
-function HomeController(posts, comments, $timeout) {
+function HomeController(posts, comments) {
     var vm = this;
     var pageNumber = 1;
     var params = {
@@ -12,31 +12,33 @@ function HomeController(posts, comments, $timeout) {
     }
     vm.filterQuery = '';
     vm.posts = posts.$query(params);
-    vm.comments = posts.$queryComments('1');
+    vm.normalPosts = posts.$query();
+    posts.$get('1').$promise
+        .then(function(response) {
+            vm.post = response;
+            // vm.singlePostComments = vm.post.$edge('comments').$query();
+        })
+    vm.comments = posts.$edge('comments', '1').$query();
+    // vm.singlePostComments = vm.post.$edge('comments').$query();
 
     vm.editPostMessage = editPostMessage;
     vm.savePost = savePost;
-    vm.saveComment = saveComment;
     vm.filter = filter;
     vm.getNextPage = getNextPage;
     vm.createPost = createPost;
-
-    $timeout(function() {
-        // debugger;
-        // vm.posts
-    }, 1000)
 
     function editPostMessage(post) {
         post.$remove();
     }
 
-    function createPost(message) {
+    function createPost() {
         var params = {
-            message: message
+            message: vm.createMessage
         }
         posts.$create(params)
             .then(function(response) {
-                vm.posts.push(response);
+                vm.posts.unshift(response);
+                vm.createMessage = '';
             })
     }
 
@@ -47,19 +49,6 @@ function HomeController(posts, comments, $timeout) {
             .then(function() {
                 vm.message = '';
             });
-    }
-
-    function saveComment(comment) {
-        if (!comment.newComment) {
-            return;
-        }
-        var options = {
-            message: comment.newComment
-        }
-        comment.$save(options)
-            .then(function() {
-                comment.newComment = "";
-            })
     }
 
     function getNextPage() {
@@ -75,13 +64,15 @@ function HomeController(posts, comments, $timeout) {
                     vm.posts.push(item)
                 });
             });
+
+
     }
 
     function filter() {
         var filter = {
             filter: vm.filterQuery
         }
-        vm.filteredPosts = posts.$query(filter);
+        vm.normalPosts = posts.$query(filter);
     }
 
     vm.post = posts.$get('3');

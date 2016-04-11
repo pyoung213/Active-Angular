@@ -5,5 +5,5 @@ angular
 function MainController(posts) {
     var vm = this;
     // vm.posts = posts.$query();
-    vm.post = posts.$get('3');
+    vm.post = posts.$get('1');
 }
