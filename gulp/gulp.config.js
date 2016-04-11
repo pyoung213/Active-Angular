@@ -184,8 +184,7 @@ config.getWiredepDefaultOptions = function() {
     var options = {
         bowerJson: config.bower.json,
         directory: config.bower.directory,
-        ignorePath: config.bower.ignorePath,
-        devDependencies: true
+        ignorePath: config.bower.ignorePath
     };
     return options;
 };
