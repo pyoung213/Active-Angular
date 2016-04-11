@@ -64,8 +64,6 @@ function HomeController(posts, comments) {
                     vm.posts.push(item)
                 });
             });
-
-
     }
 
     function filter() {

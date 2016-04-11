@@ -1,18 +1,17 @@
 describe('ActiveAngular', function() {
-    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, ActiveObject, $q, post, activePosts, activeAngularConstant,
+    var Post, sandbox, $httpBackend, posts, ActiveAngular, ActiveArray, ActiveObject, $q, post, activePosts,
         userId = "1234567890",
         url = "posts/:id";
 
     beforeEach(module('activeAngular'));
 
-    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_, _activeAngularConstant_) {
+    beforeEach(inject(function(_ActiveAngular_, _ActiveArray_, _ActiveObject_, _$httpBackend_, _$q_) {
         sandbox = sinon.sandbox.create();
         ActiveAngular = _ActiveAngular_;
         ActiveArray = _ActiveArray_;
         ActiveObject = _ActiveObject_;
         Post = new ActiveAngular(url);
         $httpBackend = _$httpBackend_;
-        activeAngularConstant = _activeAngularConstant_;
         $q = _$q_;
 
         posts = [{
@@ -323,7 +322,6 @@ describe('ActiveAngular', function() {
             $httpBackend.flush();
             expect(Post.$cache.cached[userId + _.toLower(reference)]).to.have.all.keys(post);
         });
-
 
         it('should $get when cache timestamp has expired', function() {
             var Ref = new ActiveAngular('something/:id');
