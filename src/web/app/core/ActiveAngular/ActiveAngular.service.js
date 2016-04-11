@@ -239,12 +239,7 @@
                 }
 
                 function _hydrateCollection(collection) {
-                    var data = {};
-
-                    _.forEach(collection[self._collectionKey], function(value, key) {
-                        data[key] = value
-                    });
-                    return data;
+                    return collection[self._collectionKey];
                 }
 
                 function _hideMetadata(ref, data) {

@@ -27,14 +27,6 @@
                     </md-card-header>
                     <md-card-content>
                         <p>{{comment.message}}</p>
-                        <div layout="row">
-                            <md-input-container class="md-block" flex="30">
-                                <label>Change Comment</label>
-                                <input ng-model="comment.newComment">
-                            </md-input-container>
-                            <md-button class="md-primary" ng-click="vm.saveComment(comment)">Save</md-button>
-                        </div>
-
                     </md-card-content>
                 </div>
             </md-card>
@@ -48,10 +40,20 @@
                 <label>Search</label>
                 <input ng-model="vm.filterQuery" ng-change="vm.filter()" ng-model-options="{ debounce: 200 }" />
             </md-input-container>
-            <div ng-repeat="post in vm.filteredPosts || vm.otherPosts" ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
-                <div>{{post.id}}</div>
-                <div>{{post.message}}</div>
-            </div>
+            <md-card ng-repeat="post in vm.normalPosts">
+                <md-card-header>
+                    <md-card-avatar>
+                        <img class="md-user-avatar" ng-src="{{post.author.imageUrl}}"/>
+                    </md-card-avatar>
+                    <md-card-header-text>
+                        <span class="md-title">{{post.author.name}}</span>
+                        <span class="md-subhead">{{post.createdAt | date:'medium'}}</span>
+                    </md-card-header-text>
+                </md-card-header>
+                <md-card-content ui-sref="{{$root.routes.SINGLE_POST}}({id: post.id})">
+                    <p>{{post.message}}</p>
+                </md-card-content>
+            </md-card>
         </div>
     </div>
 
@@ -62,7 +64,7 @@
     </div>
     <div layout="row">
         <md-input-container class="md-block" flex="30">
-            <label>First name</label>
+            <label>Post Message</label>
             <input ng-model="vm.message">
         </md-input-container>
         <md-button class="md-primary" ng-click="vm.savePost()">Save</md-button>
@@ -70,7 +72,7 @@
             <label>New Message</label>
             <input ng-model="vm.createMessage">
         </md-input-container>
-        <md-button class="md-primary" ng-click="vm.createPost(vm.createMessage)">Create</md-button>
+        <md-button class="md-primary" ng-click="vm.createPost()">Create</md-button>
     </div>
 
     <div layout="row">

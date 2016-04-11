@@ -12,14 +12,14 @@ var $ = require('gulp-load-plugins')({
 
 gulp.task('test', ['vet', 'build'], function(done) {
     process.env.NODE_ENV = 'test';
-    runsequence('server:test', 'web:test', 'e2e', done);
+    runsequence('web:test', done);
 });
 
 gulp.task('test-dev', ['vet', 'build-dev'], function(done) {
     process.env.NODE_ENV = 'test';
     process.env.SERVE_FROM_SRC = 'true';
 
-    runsequence('server:test', 'web:test', 'e2e', done);
+    runsequence('web:test', done);
 });
 
 /**

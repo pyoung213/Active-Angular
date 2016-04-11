@@ -1,2 +1,36 @@
 <h3>Single Post Page</h3>
-<pre> {{vm.singlePost | json}}  </pre>
+<md-card>
+    <md-card-header>
+        <md-card-avatar>
+            <img class="md-user-avatar" ng-src="{{vm.singlePost.author.imageUrl}}"/>
+        </md-card-avatar>
+        <md-card-header-text>
+            <span class="md-title">{{vm.singlePost.author.name}}</span>
+            <span class="md-subhead">{{vm.singlePost.createdAt | date:'medium'}}</span>
+        </md-card-header-text>
+    </md-card-header>
+    <md-card-content ui-sref="{{$root.routes.SINGLE_POST}}({id: vm.singlePost.id})">
+        <p>{{vm.singlePost.message}}</p>
+    </md-card-content>
+</md-card>
+<md-card style="background-color:#eee;border-top:1px solid #ccc;" ng-repeat="comment in vm.singlePost.comments">
+    <md-card-header>
+        <md-card-avatar>
+            <img class="md-user-avatar" ng-src="{{comment.author.imageUrl}}"/>
+        </md-card-avatar>
+        <md-card-header-text>
+            <span class="md-title">{{comment.author.name}}</span>
+            <span class="md-subhead">{{comment.createdAt | date:'medium'}}</span>
+        </md-card-header-text>
+    </md-card-header>
+    <md-card-content>
+        <p>{{comment.message}}</p>
+    </md-card-content>
+</div>
+</md-card>
+<div layout="row">
+    <md-input-container class="md-block" flex="30">
+        <label>New Message</label>
+        <input ng-model="vm.message">
+    </md-input-container>
+    <md-button class="md-primary" ng-click="vm.savePost()">Save</md-button>
