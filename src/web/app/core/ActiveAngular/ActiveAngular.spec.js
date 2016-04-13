@@ -34,7 +34,7 @@ describe('ActiveAngular', function() {
 
         activePosts = ActiveArray.decorateArray(posts, Post);
         _.forEach(activePosts, function(value, key) {
-            activePosts[key] = new ActiveObject(value, self);
+            activePosts[key] = new ActiveObject(value, Post);
         });
 
         post = posts[1];
@@ -171,6 +171,31 @@ describe('ActiveAngular', function() {
         });
     });
 
+    describe('$promise', function() {
+        it('should resolve promise when getting an array', function() {
+            var Posts = new ActiveAngular('posts/:id');
+            $httpBackend.expectGET('/posts').respond(200, posts);
+            Posts.$query().$promise
+                .then(function(response) {
+                    expect(JSON.stringify(response)).to.be.equal(JSON.stringify(posts));
+                });
+            $httpBackend.flush();
+        });
+
+        it('should resolve promises in array when expecting a list', function() {
+            var Posts = new ActiveAngular('posts/:id');
+            $httpBackend.expectGET('/posts').respond(200, posts);
+            Posts.$query().$promise
+                .then(function(response) {
+                    response[0].$promise
+                        .then(function(singlePostResponse) {
+                            expect(singlePostResponse).to.be.an.object;
+                        })
+                });
+            $httpBackend.flush();
+        });
+    });
+
     describe('$edges', function() {
         it('should create an edge that can be called', function() {
             var Comments = new ActiveAngular('comments/:id');
@@ -265,7 +290,7 @@ describe('ActiveAngular', function() {
     });
 
     describe('$save', function() {
-        it('should save with data on body', function() {
+        it('should save options with data on body', function() {
             var saveMockData = {
                 message: 'hi',
                 title: 'awesome'
@@ -275,7 +300,29 @@ describe('ActiveAngular', function() {
             Post.$save(saveMockData);
             $httpBackend.flush();
         });
+
+        it('should save with data on body', function() {
+            var singleActivePost = activePosts[0];
+            var returnedData = angular.copy(_.omit(singleActivePost, 'id'));
+            $httpBackend.expectPUT('/posts/' + singleActivePost.id, returnedData).respond(200, {});
+            singleActivePost.$save();
+            $httpBackend.flush();
+        });
     });
+
+    describe('$update', function() {
+        it('should do a partial update with the data', function() {
+            var saveMockData = {
+                message: 'hi',
+                title: 'awesome'
+            }
+            $httpBackend.expectPATCH('/posts/' + userId, angular.copy(saveMockData)).respond(200, {});
+            saveMockData.id = userId;
+            Post.$update(saveMockData);
+            $httpBackend.flush();
+        });
+    });
+
 
     describe('$remove', function() {
         it('should remove item', function() {

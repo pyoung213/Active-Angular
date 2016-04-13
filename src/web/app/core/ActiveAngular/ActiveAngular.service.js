@@ -28,6 +28,7 @@
                 self.$get = $get;
                 self.$query = $query;
                 self.$save = $save;
+                self.$update = $update;
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
@@ -134,7 +135,7 @@
                     var item = this;
 
                     if (!options) {
-                        return;
+                        options = item;
                     }
 
                     if (options && !options.id) {
@@ -146,6 +147,27 @@
                     self.$cache.set(savedChanges.id, savedChanges);
 
                     return self.$$http('PUT', options)
+                        .catch(function() {
+                            self.$cache.set(oldCopy.id, oldCopy);
+                        });
+                }
+
+                function $update(options) {
+                    var item = this;
+
+                    if (!options) {
+                        return;
+                    }
+
+                    if (options && !options.id) {
+                        options.id = item.id;
+                    }
+
+                    var oldCopy = angular.copy(item);
+                    var savedChanges = _.extend(item, options);
+                    self.$cache.set(savedChanges.id, savedChanges);
+
+                    return self.$$http('PATCH', options)
                         .catch(function() {
                             self.$cache.set(oldCopy.id, oldCopy);
                         });
