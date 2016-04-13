@@ -8,7 +8,6 @@
         "node": "0.12.x"
     },
     "scripts": {
-        "postinstall": "bower install",
         "start": "node src/server/app.js",
         "test": "gulp test"
     },
