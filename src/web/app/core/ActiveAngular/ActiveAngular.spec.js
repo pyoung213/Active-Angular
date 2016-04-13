@@ -323,7 +323,6 @@ describe('ActiveAngular', function() {
         });
     });
 
-
     describe('$remove', function() {
         it('should remove item', function() {
             $httpBackend.expectDELETE('/posts/' + userId).respond(200, {});
