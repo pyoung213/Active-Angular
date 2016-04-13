@@ -1,6 +1,6 @@
 (function() {
     angular
-        .module('activeAngular', []);
+        .module('activeAngular', ["ngSanitize"]);
 })();
 
 angular
@@ -39,6 +39,7 @@ angular
                 self.$get = $get;
                 self.$query = $query;
                 self.$save = $save;
+                self.$update = $update;
                 self.$remove = $remove;
                 self.$create = $create;
                 self.$$http = $$http;
@@ -145,7 +146,7 @@ angular
                     var item = this;
 
                     if (!options) {
-                        return;
+                        options = item;
                     }
 
                     if (options && !options.id) {
@@ -157,6 +158,27 @@ angular
                     self.$cache.set(savedChanges.id, savedChanges);
 
                     return self.$$http('PUT', options)
+                        .catch(function() {
+                            self.$cache.set(oldCopy.id, oldCopy);
+                        });
+                }
+
+                function $update(options) {
+                    var item = this;
+
+                    if (!options) {
+                        return;
+                    }
+
+                    if (options && !options.id) {
+                        options.id = item.id;
+                    }
+
+                    var oldCopy = angular.copy(item);
+                    var savedChanges = _.extend(item, options);
+                    self.$cache.set(savedChanges.id, savedChanges);
+
+                    return self.$$http('PATCH', options)
                         .catch(function() {
                             self.$cache.set(oldCopy.id, oldCopy);
                         });
@@ -250,12 +272,7 @@ angular
                 }
 
                 function _hydrateCollection(collection) {
-                    var data = {};
-
-                    _.forEach(collection[self._collectionKey], function(value, key) {
-                        data[key] = value
-                    });
-                    return data;
+                    return collection[self._collectionKey];
                 }
 
                 function _hideMetadata(ref, data) {
@@ -531,6 +548,11 @@ angular
                 Object.defineProperty(self, '$save', {
                     enumerable: false,
                     value: instance.$save
+                });
+
+                Object.defineProperty(self, '$update', {
+                    enumerable: false,
+                    value: instance.$update
                 });
 
                 Object.defineProperty(self, '$edge', {
