@@ -8,6 +8,7 @@
         "node": "0.12.x"
     },
     "scripts": {
+        "postinstall": "bower install",
         "start": "node src/server/app.js",
         "test": "gulp test"
     },
@@ -105,7 +106,7 @@
         "run-sequence": "^1.1.5",
         "serve-favicon": "^2.3.0",
         "simple-di": "0.0.22",
-        "sinon": "^1.17.1",
+        "sinon": "^1.17.3",
         "sinon-as-promised": "^4.0.0",
         "sinon-chai": "^2.8.0",
         "swagger-node-express": "^2.1.3",
