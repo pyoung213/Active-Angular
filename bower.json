@@ -42,6 +42,6 @@
         "angular-material": "~1.0.7"
     },
     "resolutions": {
-        "sinon": "~1.17.3"
+        "sinon": "1.17.3"
     }
 }
