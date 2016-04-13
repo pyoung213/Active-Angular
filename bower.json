@@ -40,5 +40,8 @@
         "angular-ui-router": "~0.2.18",
         "angular-animate": "~1.5.3",
         "angular-material": "~1.0.7"
+    },
+    "resolutions": {
+        "sinon": "~1.17.3"
     }
 }
