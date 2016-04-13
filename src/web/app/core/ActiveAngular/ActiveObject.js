@@ -20,6 +20,11 @@
                     value: instance.$save
                 });
 
+                Object.defineProperty(self, '$update', {
+                    enumerable: false,
+                    value: instance.$update
+                });
+
                 Object.defineProperty(self, '$edge', {
                     enumerable: false,
                     value: instance.$edge
