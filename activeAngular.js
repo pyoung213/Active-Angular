@@ -92,6 +92,7 @@ angular
 
                     if (cachedItem && !cachedItem.$isExpired) {
                         cachedItem.$deferPromise.resolve(cachedItem);
+                        self.edgeUrl = "";
                         return cachedItem;
                     }
                     if (!cachedItem) {
@@ -108,9 +109,7 @@ angular
                     self.$$http('GET', options)
                         .then(function(response) {
                             var data = response.data;
-                            if (self._formatResponse) {
-                                data = self._formatResponse(data);
-                            }
+
                             var isDataArray = angular.isArray(data);
 
                             if (isDataArray != isArray) {
@@ -244,7 +243,13 @@ angular
 
                     options.url = baseUrl + '/' + options.url;
 
-                    return $http(options);
+                    return $http(options)
+                        .then(function(response) {
+                            if (self._formatResponse) {
+                                response.data = self._formatResponse(response.data);
+                            }
+                            return response;
+                        });
                 }
 
                 function _logMismatchError(response, isArray) {
@@ -261,12 +266,16 @@ angular
                     }
                     _.forEach(self.$hydrate, function(value, key) {
                         var edges = self._edges;
+                        if (value.key && !data[value.key]) {
+                            return;
+                        }
+                        var valueKey = value.key || key;
                         if (edges && edges[key]) {
                             var model = edges[key].model;
-                            data[key] = model.$edge.call(self, key, data.id).$query();
-                            return
+                            data[key] = model.$edge.call(self, valueKey, data.id).$query();
+                            return;
                         }
-                        data[key] = value.$get(data[key]);
+                        data[key] = value.model.$get(data[valueKey]);
                     });
                     return data;
                 }
